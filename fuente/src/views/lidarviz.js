@@ -149,7 +149,7 @@ function visor(main, params) {
   };
   const load = async (s) => { $$('[data-s]', main).forEach(c => c.style.boxShadow = c.dataset.s === s.id ? '0 0 0 2px #235B4E' : ''); if (cache[s.id]) return show(cache[s.id], s.name, s.sha256);
     $('#ld', main).style.display = 'flex'; $('#ld', main).textContent = 'Descargando ' + s.file + '…';
-    try { const r = await fetch(s.file); if (!r.ok) throw new Error('HTTP ' + r.status); cache[s.id] = await r.arrayBuffer(); show(cache[s.id], s.name, s.sha256); } catch (e) { $('#ld', main).textContent = 'No se pudo descargar la muestra (' + e.message + ').'; } };
+    try { const r = await fetch(s.file); if (!r.ok) throw new Error('HTTP ' + r.status); cache[s.id] = await r.arrayBuffer(); show(cache[s.id], s.name, s.sha256); } catch (e) { $('#ld', main).innerHTML = '<div style="max-width:520px;text-align:center;line-height:1.6">Las nubes de ejemplo se sirven desde el sitio web de la demostración. En esta vista puede abrir un archivo LAS local con el botón «Abrir archivo LAS».</div>'; } };
   on(main, 'click', '[data-s]', (e, c) => load(SAMPLES.find(s => s.id === c.dataset.s)));
   on(main, 'click', '#cm button', (e, b) => { mode = b.dataset.m; $$('#cm button', main).forEach(x => x.classList.toggle('on', x === b)); if (cur && view) { view.color(colors(cur.P, cur.R, mode)); legend(); } });
   $('#ps', main).oninput = e => { if (view) { view.st.size = +e.target.value; view.req(); } };
