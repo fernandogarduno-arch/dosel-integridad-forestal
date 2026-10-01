@@ -4,6 +4,7 @@ import { S, prediosById, munName, estudioById } from './state.js';
 import { VARS } from './semaforo.js';
 
 export const IC = {
+  chat: '<path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 9h8M8 12h5"/>',
   map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14"/>', dash: '<path d="M3 3h8v10H3zM13 3h8v6h-8zM13 11h8v10h-8zM3 15h8v6H3z"/>', users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 5.5a3 3 0 0 1 0 5.8M18 14.5c2 .7 3.5 2.6 3.5 5.5"/>',
   alert: '<path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.5"/>', layers: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5m-18 4 9 5 9-5"/>', shield: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Zm-3 9 2.2 2.2L15.5 10"/>', file: '<path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6"/>',
   upload: '<path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v4h16v-4"/>', db: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>', leaf: '<path d="M5 19c0-9 5-14 15-14 0 10-5 15-14 15m-1 0c2-5 5-8 9-10"/>',

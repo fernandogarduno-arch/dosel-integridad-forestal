@@ -1,10 +1,10 @@
 import sys, json
 from playwright.sync_api import sync_playwright
 views = {
- 'ciudadano':['inicio','mapa','elegibilidad','municipios','indicadores','restauracion','metodo','datos','metodologia','cuentas','denuncia'],
+ 'ciudadano':['inicio','mapa','elegibilidad','municipios','indicadores','restauracion','metodo','datos','metodologia','cuentas','denuncia','participa'],
  'productor':['panel','procedimientos','predios','tramites','levantamiento','restauracion','avisos'],
  'empacadora':['recepcion','lotes','integracion'],
- 'admin':['centro','gis','huertas','triaje','expedientes','dictamenes','segunda','cortes','exactitud','semaforo','lidar','fuentes','balance','compensaciones','recaudacion','laboral','bitacora','gobernanza','guardian','visor','api','ingesta','padron','alertas','restauracion','indicadores'],
+ 'admin':['centro','gis','huertas','triaje','expedientes','dictamenes','segunda','cortes','exactitud','semaforo','lidar','fuentes','balance','compensaciones','recaudacion','laboral','bitacora','gobernanza','guardian','visor','participacion','api','ingesta','padron','alertas','restauracion','indicadores'],
 }
 only = sys.argv[1:]  # optional filter portal/view
 with sync_playwright() as p:

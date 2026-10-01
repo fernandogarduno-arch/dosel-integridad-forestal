@@ -6,9 +6,11 @@ import { createMap, attachControls } from '../mapkit.js';
 import { mapPage, publicIds } from './mapPage.js';
 import { REAL_FACTS, AVO_MM, AVO_SO } from '../sources.js';
 import { VARS } from '../semaforo.js';
-import { sha256Str, ledgerAppend } from '../integrity.js';
+import { sha256Str, ledgerAppend, sha256Bytes } from '../integrity.js';
 import { prepPts } from '../map.js';
 import { GF, GF_TOT, CHORO } from '../domain/gf.js';
+import { integrar, municipioEn, CAT_DEN, PRECISION } from '../domain/participa.js';
+import { arbolinSvg } from '../assistant/icon.js';
 
 const hdr = (t, p, act = '') => `<div class="page-h"><div><h1>${t}</h1>${p ? `<p>${p}</p>` : ''}</div><div class="act">${act}</div></div>`;
 const pub = () => { const ids = publicIds(); const rows = S.predios.features.filter(f => ids.has(f.properties.id)).map(f => f.properties); return { ids, rows, v: rows.filter(p => p.cls === 'verde').length, n: rows.filter(p => p.cls === 'naranja').length, r: rows.filter(p => p.cls === 'rojo').length }; };
@@ -28,6 +30,7 @@ function inicio(main) {
     <div style="display:grid;gap:7px;font-size:13px">${[['verde', pb.v], ['naranja', pb.n], ['rojo', pb.r]].map(([c, v]) => `<div class="sem"><i style="background:${CLS[c].color}"></i>${CLS[c].name} <span class="mono dim">${fmt(v)}</span></div>`).join('')}<div class="tiny dim" style="max-width:190px;margin-top:4px">+ ${fmt(validating)} en validación y ${fmt(sinfo)} sin información suficiente (no publicados individualmente)</div></div>
   </div></div>
   <div class="card" style="margin-top:14px"><div class="ch"><h3>Michoacán hoy · Guardián Forestal</h3><div class="sp">${tag('real')} <button class="btn sm ghost" data-go="municipios">Ver 113 municipios</button></div></div><div class="grid g5" style="margin-top:8px">${[['Superficie de huertas', fmt(GF_TOT.orchHa) + ' ha', '#A8720F'], ['Huertas de exportación', fmt(GF_TOT.exp), '#A8720F'], ['Bosque remanente', fmt(GF_TOT.forest) + ' ha', '#2E7D32'], ['Ollas de agua detectadas', fmt(GF_TOT.ollas), '#45544F'], ['Superficie denunciada', fmt(GF_TOT.rep) + ' ha', '#B3261E']].map(x => `<div><div class="tiny dim">${x[0]}</div><div class="mono" style="font-size:22px;font-weight:600;color:${x[2]}">${x[1]}</div></div>`).join('')}</div><div class="tiny dim" style="margin-top:6px">Estadísticas públicas por municipio (consulta 30-sep-2026). El módulo de dictamen trabaja huerta por huerta sobre esta base.</div></div>
+  <div class="arb-band" style="margin-top:14px">${arbolinSvg(58)}<div><b>¿Dudas o algo que reportar? Habla con Arbolín</b><p>Te explica en palabras sencillas cómo está el bosque en tu municipio y registra tu opinión, sugerencia o denuncia, bien ubicada en el mapa y con folio de seguimiento.</p></div><button class="btn pri" id="arb-go">Hablar con Arbolín</button></div>
   <div class="grid g4" style="margin-top:14px">
     ${kpi({ l: 'Huertas inscritas', v: fmt(st.tot), s: fmt(st.totHa) + ' ha · ' + Object.values(st.perMun).filter(m => m.n).length + ' de 113 municipios (franja aguacatera)' })}
     ${kpi({ l: 'Padrón con polígono validado', v: fmt(st.validated * 100, 0) + ' %', s: 'Meta 2028: 80 % del universo exportador', c: '#235B4E' })}
@@ -50,6 +53,7 @@ function inicio(main) {
   const map = createMap($('#pm', main), { ids: pb.ids, showAlerts: false, showLidar: false, showRest: false, z: 7.4 }); map.show('alertas', false); map.show('lidar', false); map.show('rest', false);
   map.fitBounds([-102.7, 19.0, -101.2, 19.85], 30, false); attachControls($('#pm', main).parentElement, map, {}); map.on('click', () => window.__go('ciudadano', 'mapa'));
   return () => map.destroy();
+  const ag = $('#arb-go', main); if (ag) ag.onclick = () => window.__arbolin && window.__arbolin.abrir();
 }
 
 function mapa(main) {
@@ -154,7 +158,7 @@ function cuentas(main) {
 
 function denuncia(main) {
   main.innerHTML = hdr('Denuncia ciudadana', 'Reporte de desmonte, incendio, quema o reservorio sin autorización. Puede ser anónimo: no se recaba ningún dato de identidad ni se publica.', tag('demo')) +
-    `<div class="grid g2"><div class="card"><form id="fd"><label class="f">Tipo de hecho<select id="dt"><option>Desmonte o cambio de uso de suelo</option><option>Incendio o quema</option><option>Construcción de reservorio (olla)</option><option>Tala</option><option>Otro</option></select></label>
+    `<div class="arb-band" style="margin-bottom:14px">${arbolinSvg(52)}<div><b>¿Prefieres conversar?</b><p>Arbolín te guía paso a paso: municipio, localidad, colonia o paraje, punto en el mapa y fotos. Al final te da tu folio.</p></div><button class="btn pri" id="arb-den">Denunciar con Arbolín</button></div><div class="grid g2"><div class="card"><form id="fd"><label class="f">Tipo de hecho<select id="dt">${CAT_DEN.map(c => `<option>${c}</option>`).join('')}</select></label>
       <label class="f">Ubicación (haga clic en el mapa)<div class="two"><input id="dlat" placeholder="Latitud" readonly><input id="dlon" placeholder="Longitud" readonly></div></label>
       <label class="f">Descripción<textarea id="dd" rows="4" placeholder="¿Qué observó? ¿Desde cuándo? Evite datos personales de terceros."></textarea></label>
       <label class="f">Fotografía (opcional; se conserva su metadato EXIF para la verificación)<input type="file" id="df" accept="image/*"></label>
@@ -165,12 +169,14 @@ function denuncia(main) {
   const map = createMap($('#dm', main), { showAlerts: false, showLidar: false, showRest: false, ids: new Set() }); map.show('alertas', false); map.show('lidar', false); map.show('rest', false); map.show('predios', false); map.fitBounds([-102.7, 19.0, -101.2, 19.85], 20, false); attachControls($('#dm', main).parentElement, map, { sat: true });
   let pin = null; map.addLayer('pin', { type: 'custom', order: 99, draw: (m, ctx) => { if (!pin) return; const [x, y] = m.toScreen(pin[0], pin[1]); ctx.fillStyle = '#B3261E'; ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y - 10, 8, 0, 6.3); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - 5, y - 5); ctx.lineTo(x, y + 3); ctx.lineTo(x + 5, y - 5); ctx.fill(); } });
   map.on('click', ({ lonlat }) => { const { mx, my } = { mx: v => (v + 180) / 360, my: v => { const s = Math.sin(v * Math.PI / 180); return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI); } }; pin = [mx(lonlat[0]), my(lonlat[1])]; $('#dlat', main).value = lonlat[1].toFixed(5); $('#dlon', main).value = lonlat[0].toFixed(5); map.redraw(); });
+  $('#arb-den', main).onclick = () => window.__arbolin && window.__arbolin.participar('denuncia');
   $('#fd', main).addEventListener('submit', async e => {
     e.preventDefault(); const lat = +$('#dlat', main).value, lon = +$('#dlon', main).value; if (!lat) return toast('Marque la ubicación en el mapa', 'warn');
-    const payload = JSON.stringify({ t: $('#dt', main).value, d: $('#dd', main).value, lat, lon, ts: new Date().toISOString() }); const h = sha256Str(payload); const folio = 'DEN-2026-' + h.slice(0, 5).toUpperCase();
-    const mun = (() => { let best = null, bd = 9; G.municipios.features.forEach(f => { const dx = f.properties.cx - lon, dy = f.properties.cy - lat, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = f.properties.id; } }); return best; })();
-    const al = { id: folio, d: new Date('2026-09-29').toISOString().slice(0, 10), lon, lat, mun, pid: null, src: 'Denuncia ciudadana', conf: 'alta', ha: 0.5, st: 'Detectada', dias: 0 }; S.alertas.unshift(al); P.alertas.push(...prepPts([al])); refresh(); ledgerAppend(S.ledger, 'Sistema', 'ALERTA_CREADA', folio);
-    modal(`<h2>Denuncia recibida</h2><div class="verdict ok"><div class="big mono">${folio}</div><div class="tiny dim">Conserve este folio. No se recabó identidad.</div></div><dl class="kv" style="margin-top:12px"><dt>Huella SHA-256 del contenido</dt><dd class="hash">${h}</dd><dt>Ubicación</dt><dd class="mono">${lat.toFixed(5)}, ${lon.toFixed(5)}</dd><dt>Municipio</dt><dd>${esc(munName[mun])}</dd></dl><p class="tiny dim">Pasa a validación con imagen satelital de alta resolución. Recibirá respuesta pública en el tablero cuando la clasificación sea firme.</p><div style="text-align:right"><button class="btn pri" data-close>Entendido</button></div>`);
+    const desc = $('#dd', main).value.trim(); if (desc.length < 12) return toast('Describa brevemente lo que observó', 'warn');
+    const mu = municipioEn(lon, lat); if (!mu) return toast('El punto está fuera de Michoacán', 'warn');
+    const f = $('#df', main).files[0]; let fotos = []; if (f) { fotos = [{ n: f.name, sha: sha256Bytes(new Uint8Array(await f.arrayBuffer())) }]; }
+    const rec = integrar({ tipo: 'denuncia', categoria: $('#dt', main).value, descripcion: desc, municipio: mu.id, localidad: '', colonia: '', ubicacion: { lon: +lon.toFixed(6), lat: +lat.toFixed(6), precision: 'mapa' }, fotos, anonimo: true, contacto: null, canal: 'Formulario web' });
+    modal(`<h2>Denuncia recibida</h2><div class="verdict ok"><div class="big mono">${rec.folio}</div><div class="tiny dim">Conserve este folio. No se recabó identidad.</div></div><dl class="kv" style="margin-top:12px"><dt>Huella SHA-256</dt><dd class="hash">${rec.hash}</dd><dt>Ubicación</dt><dd class="mono">${lat.toFixed(5)}, ${lon.toFixed(5)} · ${PRECISION.mapa}</dd><dt>Municipio</dt><dd>${esc(mu.name)}</dd><dt>Tema / prioridad</dt><dd>${esc(rec.cat.categoria)} · ${rec.cat.prioridad}</dd><dt>Se turna a</dt><dd>${rec.cat.autoridad.map(esc).join('<br>')}</dd></dl><p class="tiny dim">Pasa a la cola de triaje técnico (${rec.alerta}). Puede consultar el avance con Arbolín escribiendo su folio.</p><div style="text-align:right"><button class="btn pri" data-close>Entendido</button></div>`);
     $('#fd', main).reset(); pin = null; map.redraw();
   });
   return () => map.destroy();
