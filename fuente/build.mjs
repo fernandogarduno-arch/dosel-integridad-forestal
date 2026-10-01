@@ -5,6 +5,7 @@ let js = r.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 const css = fs.readFileSync('src/style.css', 'utf8');
 const html = fs.readFileSync('src/index.html', 'utf8').replace('/*__CSS__*/', () => css).replace('/*__JS__*/', () => js);
 fs.mkdirSync('dist', { recursive: true }); fs.writeFileSync('dist/index.html', html);
+if (fs.existsSync('public')) fs.cpSync('public', 'dist', { recursive: true });
 console.log('OK', (html.length / 1024).toFixed(0), 'KB');
 // Fragmento para publicar como Artifact (el skeleton lo agrega la plataforma)
 const frag = `<title>Verificación Forestal Michoacán</title>

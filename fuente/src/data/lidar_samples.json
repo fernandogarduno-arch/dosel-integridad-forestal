@@ -1,0 +1,50 @@
+[
+ {
+  "id": "bosque",
+  "file": "muestras/demo_sintetico_bosque.las",
+  "name": "Bosque de pino-encino (referencia)",
+  "desc": "Bosque continuo sin intervención: copas altas, sotobosque y suelo apenas visible.",
+  "pid": "PF-TAN-00111",
+  "mun": "M035",
+  "lon": -102.3396,
+  "lat": 19.5013,
+  "n": 133847,
+  "bytes": 4016245,
+  "sha256": "9ccfb52fd277f65c4abbb33d7d0fc31c4b3c2b2190fa7378c27ccd5da076f61d",
+  "fecha": "2026-08-13",
+  "arboles_generados": 95,
+  "lado_m": 60.0
+ },
+ {
+  "id": "huerta",
+  "file": "muestras/demo_sintetico_huerta.las",
+  "name": "Huerta de aguacate establecida",
+  "desc": "Árboles de 5-8 m en marco regular de 7 m, terrazas y camino interior.",
+  "pid": "PF-URU-00002",
+  "mun": "M044",
+  "lon": -102.00687,
+  "lat": 19.51248,
+  "n": 110441,
+  "bytes": 3314065,
+  "sha256": "2221211818bd003ddcef096cd466d7f718776a2795a4f26fc48e129e77d6eed2",
+  "fecha": "2026-08-14",
+  "arboles_generados": 71,
+  "lado_m": 60.0
+ },
+ {
+  "id": "conversion",
+  "file": "muestras/demo_sintetico_conversion.las",
+  "name": "Conversión reciente con olla",
+  "desc": "Remanente de bosque al oeste; desmonte, cortes de terraza, plantas jóvenes y olla de agua al este.",
+  "pid": "PF-URU-00019",
+  "mun": "M044",
+  "lon": -102.19803,
+  "lat": 19.29405,
+  "n": 98573,
+  "bytes": 2958025,
+  "sha256": "9c37d073a5c564c336e2a10f6ef2d8b8ddbbf5119a4b4c260a4f7209e640e907",
+  "fecha": "2026-08-15",
+  "arboles_generados": 87,
+  "lado_m": 60.0
+ }
+]

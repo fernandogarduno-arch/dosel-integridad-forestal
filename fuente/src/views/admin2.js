@@ -58,8 +58,9 @@ function indicadores(main) {
 
 // ---------- Levantamientos LiDAR / dron ----------
 function lidar(main, params) {
+  _vizHook(main);
   let sel = (params && params.id) || S.estudios[0].id, filt = ''; main.className = 'main flush';
-  main.innerHTML = `<div class="split"><div style="flex:1;min-width:0;padding:16px 18px;overflow:auto">${hdr('Levantamientos LiDAR / dron', 'Recepción, verificación de integridad y dictamen de cada levantamiento. Cada archivo se sella con SHA-256 al recibirse y cualquier alteración posterior se detecta.')}
+  main.innerHTML = `<div class="split"><div style="flex:1;min-width:0;padding:16px 18px;overflow:auto">${hdr('Levantamientos LiDAR / dron', 'Recepción, verificación de integridad y dictamen de cada levantamiento. Cada archivo se sella con SHA-256 al recibirse y cualquier alteración posterior se detecta.', `<button class="btn pri" data-viz>${icon('layers', 14)} Visor 3D y análisis</button>`)}
     <div class="card" style="margin-bottom:12px"><div class="ch"><h3>Verificador de archivos</h3><div class="sp">${icon('hash', 16)}</div></div><div class="two" style="margin-top:8px"><div class="drop" id="vdz" style="padding:16px">Suelte uno o varios archivos (LAS/LAZ, JPG, CSV…) para calcular su huella y buscarla en los manifiestos sellados<input type="file" id="vfi" multiple hidden></div><div id="vres" class="tiny dim">Los archivos se procesan localmente; sólo se compara la huella.</div></div></div>
     <div class="split-h"><select id="ff"><option value="">Todos</option><option>Íntegro</option><option>Con observaciones</option><option>Rechazado</option></select><span class="tiny dim" id="ct"></span></div><div class="tw"><table class="tbl" id="tb"></table></div></div><aside class="side" id="pn" style="width:520px"></aside></div>`;
   const draw = () => { const l = S.estudios.filter(e => !filt || e.ver === filt); $('#ct', main).textContent = l.length + ' levantamientos'; $('#tb', main).innerHTML = `<thead><tr><th>Estudio</th><th>Predio</th><th>Fecha</th><th>Aeronave / sensor</th><th class="num">pts/m²</th><th>Verificación</th></tr></thead><tbody>${l.map(e => `<tr class="cl ${e.id === sel ? 'act' : ''}" data-id="${e.id}"><td class="mono">${e.id}${e.nuevo ? ' <span class="chip info">nuevo</span>' : ''}</td><td class="mono">${e.pid}</td><td>${fdate(e.fecha)}</td><td class="dim">${esc(e.aero.modelo)} / ${esc(e.sensor.modelo)}</td><td class="num">${e.dens}</td><td>${estadoChip(e.ver)}</td></tr>`).join('')}</tbody>`; };
@@ -182,4 +183,5 @@ function bitacora(main) {
   $('#rs', main).onclick = () => { if (backup) S.ledger[backup.i].actor = backup.actor; backup = null; $('#rs', main).style.display = 'none'; verify(); };
   $('#ex', main).onclick = () => download('bitacora_dosel.json', JSON.stringify(S.ledger, null, 1), 'application/json');
 }
+function _vizHook(main) { main.addEventListener('click', e => { if (e.target.closest('[data-viz]')) window.__go('admin', 'visor'); }); }
 export const views = { semaforo, restauracion, indicadores, lidar, ingesta, fuentes, bitacora };

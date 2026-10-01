@@ -13,6 +13,7 @@ import * as rigor from './views/rigor.js';
 import * as cadena from './views/cadena.js';
 import * as gob from './views/gob.js';
 import * as gfint from './views/gfint.js';
+import * as lidarviz from './views/lidarviz.js';
 import { empViews, pubViews } from './views/portales.js';
 import { USERS, ROLES, me } from './domain/core.js';
 
@@ -25,11 +26,11 @@ const NAV = {
   admin: [
     { g: ['Operación', 'Operations'], items: [['centro', 'Centro de mando', 'dash'], ['gis', 'Mapa GIS', 'map'], ['huertas', 'Registro de huertas', 'users'], ['triaje', 'Cola de triaje', 'alert']] },
     { g: ['Debido proceso', 'Due process'], items: [['expedientes', 'Expedientes', 'file'], ['dictamenes', 'Dictámenes', 'shield'], ['segunda', 'Segunda instancia', 'scale']] },
-    { g: ['Rigor técnico', 'Technical rigor'], items: [['cortes', 'Cortes y fechado', 'clock'], ['exactitud', 'Exactitud medida', 'chart'], ['semaforo', 'Semáforo forestal', 'shield'], ['lidar', 'Levantamientos LiDAR / dron', 'drone'], ['fuentes', 'Fuentes y monitoreo', 'db'], ['guardian', 'Guardián Forestal', 'layers']] },
+    { g: ['Rigor técnico', 'Technical rigor'], items: [['cortes', 'Cortes y fechado', 'clock'], ['exactitud', 'Exactitud medida', 'chart'], ['semaforo', 'Semáforo forestal', 'shield'], ['lidar', 'Levantamientos LiDAR / dron', 'drone'], ['visor', 'Visor y análisis LiDAR', 'layers'], ['fuentes', 'Fuentes y monitoreo', 'db'], ['guardian', 'Guardián Forestal', 'layers']] },
     { g: ['Cadena y fiscal', 'Supply chain & revenue'], items: [['balance', 'Trazabilidad y balance', 'layers'], ['compensaciones', 'Compensaciones', 'leaf'], ['recaudacion', 'Recaudación', 'chart'], ['laboral', 'Laboral y agua', 'users']] },
     { g: ['Integridad', 'Integrity'], items: [['bitacora', 'Bitácora de auditoría', 'hash'], ['gobernanza', 'Gobernanza y continuidad', 'key'], ['api', 'API y diccionario', 'db'], ['ingesta', 'Ingesta de datos históricos', 'upload'], ['restauracion', 'Evaluación de restauración', 'leaf'], ['indicadores', 'Indicadores y reportes', 'chart']] }],
 };
-const VIEWS = { ciudadano: { ...ciud.views, ...pubViews }, productor: prod.views, empacadora: empViews, admin: { ...adm.views, ...adm2.views, ...verif.views, ...rigor.views, ...cadena.views, ...gob.views, ...gfint.views } };
+const VIEWS = { ciudadano: { ...ciud.views, ...pubViews }, productor: prod.views, empacadora: empViews, admin: { ...adm.views, ...adm2.views, ...verif.views, ...rigor.views, ...cadena.views, ...gob.views, ...gfint.views, ...lidarviz.views } };
 const TITLES = { ciudadano: 'Portal Ciudadano', productor: 'Portal del Productor', empacadora: 'Portal de Empacadora', admin: 'Portal de Administración' };
 const EN = () => S.lang === 'en';
 let cleanup = null;
