@@ -119,7 +119,7 @@ export class GeoMap {
   loop() { if (this.dead) return; if (this.dirty) { this.dirty = false; try { this.draw(); } catch (e) { console.error(e); } } requestAnimationFrame(() => this.loop()); }
   draw() {
     const ctx = this.ctx, d = this.d; ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, this.W, this.H);
-    ctx.fillStyle = this.bg || '#091A11'; ctx.fillRect(0, 0, this.W, this.H);
+    ctx.fillStyle = this.bg || '#0F2A24'; ctx.fillRect(0, 0, this.W, this.H);
     if (this.tiles) { this.drawTiles(ctx); }
     // gratícula
     this.drawGrid(ctx);
@@ -139,7 +139,7 @@ export class GeoMap {
   }
   drawGrid(ctx) {
     const z = this.v.z; const step = z < 7 ? 1 : z < 9 ? .5 : z < 11 ? .1 : .02; const [w, n] = this.lonlatAt(0, 0), [e, s] = this.lonlatAt(this.W, this.H); const lon0 = Math.floor(Math.min(w, e) / step) * step, lon1 = Math.max(w, e), lat0 = Math.floor(Math.min(s, n) / step) * step, lat1 = Math.max(s, n);
-    ctx.strokeStyle = this.tiles ? 'rgba(255,255,255,0)' : 'rgba(110,180,140,.10)'; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.strokeStyle = this.tiles ? 'rgba(242,244,240,0)' : 'rgba(242,244,240,.06)'; ctx.lineWidth = 1; ctx.beginPath();
     for (let lo = lon0; lo <= lon1; lo += step) { const [x] = this.toScreen(mx(lo), 0); ctx.moveTo(Math.round(x) + .5, 0); ctx.lineTo(Math.round(x) + .5, this.H); }
     for (let la = lat0; la <= lat1; la += step) { const [, y] = this.toScreen(0, my(la)); ctx.moveTo(0, Math.round(y) + .5); ctx.lineTo(this.W, Math.round(y) + .5); }
     ctx.stroke();
@@ -158,9 +158,9 @@ export class GeoMap {
       if (st.glow) { ctx.shadowColor = st.glow; ctx.shadowBlur = 12; ctx.strokeStyle = st.glow; ctx.lineWidth = 2; ctx.stroke(); ctx.shadowBlur = 0; }
     }
     if (l.labels && this.v.z >= (l.labelZ ?? 8)) this._post.push(ctx => {
-      ctx.font = '600 11px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+      ctx.font = '600 11px IBM Plex Sans, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
       for (const f of l.data) { if (l.labelFilter && !l.labelFilter(f.p)) continue; const [sx, sy] = this.toScreen(f.p.cx ? mx(f.p.cx) : (f.bb[0] + f.bb[2]) / 2, f.p.cy ? my(f.p.cy) : (f.bb[1] + f.bb[3]) / 2); if (sx < -50 || sy < -20 || sx > this.W + 50 || sy > this.H + 20) continue;
-        const sizePx = (f.bb[2] - f.bb[0]) * this.ws; if (sizePx < 42) continue; ctx.strokeStyle = 'rgba(6,24,15,.85)'; ctx.lineWidth = 3; ctx.strokeText(f.p.name, sx, sy); ctx.fillStyle = l.labelColor || 'rgba(214,235,222,.85)'; ctx.fillText(f.p.name, sx, sy); }
+        const sizePx = (f.bb[2] - f.bb[0]) * this.ws; if (sizePx < 42) continue; ctx.strokeStyle = 'rgba(15,42,36,.85)'; ctx.lineWidth = 3; ctx.strokeText(f.p.name, sx, sy); ctx.fillStyle = l.labelColor || 'rgba(242,244,240,.85)'; ctx.fillText(f.p.name, sx, sy); }
     });
   }
   drawLine(ctx, l) {
@@ -169,7 +169,7 @@ export class GeoMap {
   drawPts(ctx, l) {
     const z = this.v.z; for (const o of l.data) { if (l.filter && !l.filter(o.p)) continue; const [sx, sy] = this.toScreen(o.x, o.y); if (sx < -20 || sy < -20 || sx > this.W + 20 || sy > this.H + 20) continue; const st = l.style(o.p, z, this); if (!st) continue;
       ctx.globalAlpha = st.alpha ?? 1; const r = st.r ?? 4; if (st.halo) { ctx.fillStyle = st.halo; ctx.beginPath(); ctx.arc(sx, sy, r + 5, 0, 6.3); ctx.fill(); }
-      ctx.fillStyle = st.fill || '#fff'; ctx.strokeStyle = st.stroke || '#0B2117'; ctx.lineWidth = st.lw ?? 1.4; ctx.beginPath();
+      ctx.fillStyle = st.fill || '#FFFFFF'; ctx.strokeStyle = st.stroke || '#0F2A24'; ctx.lineWidth = st.lw ?? 1.4; ctx.beginPath();
       if (st.shape === 'diamond') { ctx.moveTo(sx, sy - r * 1.3); ctx.lineTo(sx + r * 1.1, sy); ctx.lineTo(sx, sy + r * 1.3); ctx.lineTo(sx - r * 1.1, sy); ctx.closePath(); }
       else if (st.shape === 'square') ctx.rect(sx - r, sy - r, r * 2, r * 2);
       else if (st.shape === 'tri') { ctx.moveTo(sx, sy - r * 1.2); ctx.lineTo(sx + r * 1.1, sy + r * .9); ctx.lineTo(sx - r * 1.1, sy + r * .9); ctx.closePath(); }
@@ -178,9 +178,9 @@ export class GeoMap {
   }
   drawTool(ctx) {
     const pts = this.tool ? this.toolPts : (this.drawn || []); if (!pts.length) return; const sp = pts.map(p => this.toScreen(mx(p[0]), my(p[1])));
-    ctx.save(); ctx.strokeStyle = '#34D399'; ctx.fillStyle = 'rgba(52,211,153,.13)'; ctx.lineWidth = 2; ctx.setLineDash(this.tool ? [6, 4] : []); ctx.beginPath(); sp.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.save(); ctx.strokeStyle = '#BC955C'; ctx.fillStyle = 'rgba(188,149,92,.15)'; ctx.lineWidth = 2; ctx.setLineDash(this.tool ? [6, 4] : []); ctx.beginPath(); sp.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
     if (this.tool && this.mouse) ctx.lineTo(this.mouse[0], this.mouse[1]); if (this.tool === 'draw' || !this.tool) { ctx.closePath(); ctx.fill(); } ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#34D399'; sp.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3.5, 0, 6.3); ctx.fill(); });
-    if (this.tool === 'measure' && pts.length > 1) { let dist = 0; for (let i = 1; i < pts.length; i++) dist += haversine(pts[i - 1], pts[i]); const q = sp.at(-1); ctx.fillStyle = 'rgba(6,24,15,.85)'; ctx.fillRect(q[0] + 8, q[1] - 22, 92, 20); ctx.fillStyle = '#34D399'; ctx.font = '12px JetBrains Mono, monospace'; ctx.fillText((dist / 1000).toFixed(2) + ' km', q[0] + 13, q[1] - 8); }
+    if (this.tool === 'measure' && pts.length > 1) { let dist = 0; for (let i = 1; i < pts.length; i++) dist += haversine(pts[i - 1], pts[i]); const q = sp.at(-1); ctx.fillStyle = 'rgba(15,42,36,.85)'; ctx.fillRect(q[0] + 8, q[1] - 22, 92, 20); ctx.fillStyle = '#34D399'; ctx.font = '12px IBM Plex Mono, monospace'; ctx.fillText((dist / 1000).toFixed(2) + ' km', q[0] + 13, q[1] - 8); }
     ctx.restore();
   }
 }

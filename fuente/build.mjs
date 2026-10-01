@@ -9,7 +9,7 @@ console.log('OK', (html.length / 1024).toFixed(0), 'KB');
 // Fragmento para publicar como Artifact (el skeleton lo agrega la plataforma)
 const frag = `<title>Verificación Forestal Michoacán</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
 <style>${css}</style>
 <div id="app"></div>
 <script>${js}</script>`;

@@ -17,9 +17,9 @@ export function dlExp(dic, publico = false) { download(`expediente_${dic.folio}$
 
 // ---------- Serie con cortes ----------
 export function seriesChart(h, w = 560, hh = 200) {
-  const d = dating(h); const v = [{ x: 2012, label: 'Incendio 2012', color: '#F97316' }, { x: 2018, label: 'Estatal 2018', color: '#F59E0B' }, { x: 2019, label: 'Federal 2019', color: '#A78BFA' }]; if (d.brk) v.push({ x: d.brk.y, label: 'Ruptura ' + d.brk.y, color: '#EF4444' });
-  fires(h).forEach(f => v.push({ x: +f.fecha.slice(0, 4) + (+f.fecha.slice(5, 7)) / 12, label: '🔥', color: '#FB923C' }));
-  return ch.line([{ name: 'Cobertura arbórea (%)', color: '#34D399', pts: d.pts, area: true }], { w, h: hh, ymax: 100, ymin: 0, xticks: [1995, 2000, 2005, 2010, 2015, 2020, 2026], vlines: v, xmin: 1993, xmax: 2026.5 });
+  const d = dating(h); const v = [{ x: 2012, label: 'Incendio 2012', color: '#A8720F' }, { x: 2018, label: 'Estatal 2018', color: '#A8720F' }, { x: 2019, label: 'Federal 2019', color: '#9F2241' }]; if (d.brk) v.push({ x: d.brk.y, label: 'Ruptura ' + d.brk.y, color: '#B3261E' });
+  fires(h).forEach(f => v.push({ x: +f.fecha.slice(0, 4) + (+f.fecha.slice(5, 7)) / 12, label: '🔥', color: '#A8720F' }));
+  return ch.line([{ name: 'Cobertura arbórea (%)', color: '#235B4E', pts: d.pts, area: true }], { w, h: hh, ymax: 100, ymin: 0, xticks: [1995, 2000, 2005, 2010, 2015, 2020, 2026], vlines: v, xmin: 1993, xmax: 2026.5 });
 }
 
 // ---------- Ficha de huerta ----------
@@ -161,7 +161,7 @@ function dictamenes(main, params) {
     pn.innerHTML = `<div class="ch"><h2 class="mono">${d.folio}</h2><div class="sp"><label class="tiny"><input type="checkbox" id="pb" ${pub ? 'checked' : ''}> Versión pública</label></div></div>
     <div class="verdict ${v.hash && v.firma && v.sello ? 'ok' : 'fail'}" style="margin:8px 0"><div><div class="big">${v.hash && v.firma && v.sello ? 'Íntegro: huella, firma y sello coinciden' : 'ALTERADO: la huella ya no coincide con la firma y el sello'}</div><div class="tiny dim mono">SHA-256 ${shortHash(d.hash)} · firma ${v.firma ? '✓' : '✕'} · NOM-151 ${v.sello ? '✓' : '✕'} (simulados)</div></div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><button class="btn sm pri" id="zip">${icon('download', 12)} Expediente reproducible (ZIP)</button><button class="btn sm" id="html">${icon('download', 12)} Documento HTML</button><button class="btn sm ghost" id="tp">${tam ? 'Restaurar' : 'Simular alteración'}</button></div>
-    <iframe id="fr" style="width:100%;height:560px;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe>`;
+    <iframe id="fr" style="width:100%;height:560px;border:1px solid var(--line);border-radius:8px;background:#FFFFFF"></iframe>`;
     $('#fr', pn).srcdoc = docHTML(d, { publico: pub });
     $('#pb', pn).onchange = e => { pub = e.target.checked; detail(); };
     $('#zip', pn).onclick = () => { dlExp(d, pub); ledgerAppend(S.ledger, me().id, 'EXPEDIENTE_DESCARGADO', d.folio); };

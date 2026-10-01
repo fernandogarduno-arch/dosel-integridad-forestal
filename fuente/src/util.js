@@ -18,11 +18,11 @@ export function download(name, content, type = 'text/plain') {
   });
 }
 export const CLS = {
-  verde: { name: 'Verde', color: '#22C55E', desc: 'Sin pérdida confirmada posterior a la fecha de referencia' },
-  amarillo: { name: 'Amarillo', color: '#EAB308', desc: 'Indicio en validación (sin efectos jurídicos)' },
-  naranja: { name: 'Naranja', color: '#F97316', desc: 'Daño confirmado y reversible: restauración exigible' },
-  rojo: { name: 'Rojo', color: '#EF4444', desc: 'Daño irreversible o causal determinante' },
-  gris: { name: 'Gris', color: '#8FAA98', desc: 'Información insuficiente o polígono sin validar' },
+  verde: { name: 'Verde', color: '#2E7D32', desc: 'Sin pérdida confirmada posterior a la fecha de referencia' },
+  amarillo: { name: 'Amarillo', color: '#BC955C', desc: 'Indicio en validación (sin efectos jurídicos)' },
+  naranja: { name: 'Naranja', color: '#A8720F', desc: 'Daño confirmado y reversible: restauración exigible' },
+  rojo: { name: 'Rojo', color: '#B3261E', desc: 'Daño irreversible o causal determinante' },
+  gris: { name: 'Gris', color: '#6F7C77', desc: 'Información insuficiente o polígono sin validar' },
 };
 export const badge = (cls, txt) => `<span class="sem"><i style="background:${CLS[cls].color}"></i>${esc(txt || CLS[cls].name)}</span>`;
 export const chip = (txt, kind = '') => `<span class="chip ${kind}">${esc(txt)}</span>`;

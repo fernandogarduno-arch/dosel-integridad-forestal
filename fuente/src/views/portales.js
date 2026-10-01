@@ -25,7 +25,7 @@ function recepcion(main) {
       <div class="card" style="margin-top:14px"><div class="ch"><h3>Consultas recientes de ${S.emp}</h3></div><div class="tw" style="max-height:320px"><table class="tbl"><thead><tr><th>Fecha</th><th>Huerta</th><th class="num">t</th><th>Resultado</th><th>Motivo</th></tr></thead><tbody>${mine.map(c => `<tr><td class="mono tiny">${c.ts.replace('T', ' ').slice(0, 16)}</td><td class="mono tiny">${c.uid}</td><td class="num">${c.t}</td><td>${c.elegible ? chip('Aceptado', 'ok') : chip('Rechazado', 'bad')}</td><td class="tiny">${esc(c.motivo)}</td></tr>`).join('') || '<tr><td colspan="5" class="dim">Sin consultas.</td></tr>'}</tbody></table></div></div>`;
     wireEmp(main, draw);
     $('#ok', main).onclick = () => { const uid = $('#uid', main).value.trim().toUpperCase(), tn = +$('#tn', main).value; if (!(tn > 0)) return toast('Indique las toneladas', 'warn'); const r = recibir(S.emp, uid, tn);
-      $('#out', main).innerHTML = `<div class="verdict ${r.q.elegible ? 'ok' : 'fail'}"><div><div class="big">${r.q.elegible ? 'Recepción autorizada · ' + r.lote.id : 'Recepción rechazada'}</div><div class="tiny dim">${esc(r.q.motivo)}</div></div></div><pre class="mono tiny" style="margin-top:8px;background:#0A1C12;border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap">${esc(JSON.stringify(r.resp, null, 1))}</pre>`; };
+      $('#out', main).innerHTML = `<div class="verdict ${r.q.elegible ? 'ok' : 'fail'}"><div><div class="big">${r.q.elegible ? 'Recepción autorizada · ' + r.lote.id : 'Recepción rechazada'}</div><div class="tiny dim">${esc(r.q.motivo)}</div></div></div><pre class="mono tiny" style="margin-top:8px;background:#F2F4F0;border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap">${esc(JSON.stringify(r.resp, null, 1))}</pre>`; };
     on(main, 'click', '[data-u]', (e, a) => { $('#uid', main).value = a.dataset.u; });
   };
   draw();
@@ -33,7 +33,7 @@ function recepcion(main) {
 function lotes(main) {
   const draw = () => { const ls = S.lotes.filter(l => l.emp === S.emp).slice().reverse(); const em = S.embarques.filter(e => e.emp === S.emp).slice().reverse();
     main.innerHTML = hdr('Lotes y embarques', 'Cadena huerta → lote → empacadora → embarque. Cada lote conserva la versión de la lista de elegibles con que se recibió.', empSel()) +
-      `<div class="grid g3">${kpi({ l: 'Lotes recibidos', v: fmt(ls.length), s: fmt(ls.reduce((s, l) => s + l.t, 0), 1) + ' t' })}${kpi({ l: 'Embarques', v: fmt(em.length) })}${kpi({ l: 'Lotes de huertas hoy no elegibles', v: fmt(ls.filter(l => !ESTADOS[hById[l.uid].estado].eleg).length), s: 'recibidos cuando eran elegibles', c: '#F59E0B' })}</div>
+      `<div class="grid g3">${kpi({ l: 'Lotes recibidos', v: fmt(ls.length), s: fmt(ls.reduce((s, l) => s + l.t, 0), 1) + ' t' })}${kpi({ l: 'Embarques', v: fmt(em.length) })}${kpi({ l: 'Lotes de huertas hoy no elegibles', v: fmt(ls.filter(l => !ESTADOS[hById[l.uid].estado].eleg).length), s: 'recibidos cuando eran elegibles', c: '#A8720F' })}</div>
       <div class="grid g2" style="margin-top:14px"><div class="card pad0"><div class="tw" style="max-height:520px"><table class="tbl"><thead><tr><th>Lote</th><th>Fecha</th><th>Huerta</th><th class="num">t</th><th>Lista</th><th>Embarque</th></tr></thead><tbody>${ls.slice(0, 300).map(l => `<tr><td class="mono tiny">${l.id}</td><td class="mono tiny">${l.fecha}</td><td class="mono tiny">${l.uid}</td><td class="num">${l.t}</td><td class="mono tiny">${l.lista}</td><td class="mono tiny">${l.emb || '—'}</td></tr>`).join('')}</tbody></table></div></div>
       <div class="card pad0"><div class="tw" style="max-height:520px"><table class="tbl"><thead><tr><th>Embarque</th><th>Semana</th><th class="num">Lotes</th><th class="num">t</th><th>Destino</th><th>Certificado</th></tr></thead><tbody>${em.map(e => `<tr><td class="mono tiny">${e.id}</td><td class="mono tiny">${e.semana}</td><td class="num">${e.lotes}</td><td class="num">${e.t}</td><td class="tiny">${e.destino}</td><td class="mono tiny">${e.cfi}</td></tr>`).join('')}</tbody></table></div></div></div>`;
     wireEmp(main, draw); };
@@ -42,7 +42,7 @@ function lotes(main) {
 function integracion(main) {
   const ex = elegibles()[0].uid;
   main.innerHTML = hdr('Integración por API', 'Las empacadoras integran la consulta a su sistema de recepción. Autenticación con certificado de cliente; respuestas firmadas; límites por minuto.') +
-    `<div class="card"><h3>Ejemplo</h3><pre class="mono tiny" style="background:#0A1C12;border:1px solid var(--line);border-radius:8px;padding:12px;white-space:pre-wrap;margin-top:8px">curl --cert empacadora.pem --key empacadora.key \\
+    `<div class="card"><h3>Ejemplo</h3><pre class="mono tiny" style="background:#F2F4F0;border:1px solid var(--line);border-radius:8px;padding:12px;white-space:pre-wrap;margin-top:8px">curl --cert empacadora.pem --key empacadora.key \\
   https://api.ejemplo.invalid/v1/elegibilidad/${ex}
 
 ${esc(JSON.stringify(elegibilidad(ex), null, 1))}</pre><div class="tiny dim">Dominio de ejemplo: el despliegue institucional publica la URL oficial.</div></div>`;

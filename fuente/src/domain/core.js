@@ -36,12 +36,12 @@ export const CULTIVOS = [ // diseño multicultivo: agregar un cultivo = agregar 
 
 // ---------------- Estados legales del predio ----------------
 export const ESTADOS = {
-  'Libre': { c: '#22C55E', d: 'Sin conversión posterior a los cortes; elegible.', eleg: true },
-  'En revisión': { c: '#EAB308', d: 'Alerta validada o información insuficiente; sin efectos hasta dictamen.', eleg: false },
-  'Con alerta': { c: '#F97316', d: 'Proyecto de dictamen notificado; en garantía de audiencia.', eleg: false },
-  'Bloqueado': { c: '#EF4444', d: 'Dictamen firme de conversión posterior al corte; no elegible.', eleg: false },
-  'En restauración': { c: '#60A5FA', d: 'Proyecto de restauración y compensación registrados; no elegible hasta verificar.', eleg: false },
-  'Rehabilitado': { c: '#34D399', d: 'Restauración y compensación verificadas; elegible con vigilancia reforzada.', eleg: true },
+  'Libre': { c: '#2E7D32', d: 'Sin conversión posterior a los cortes; elegible.', eleg: true },
+  'En revisión': { c: '#BC955C', d: 'Alerta validada o información insuficiente; sin efectos hasta dictamen.', eleg: false },
+  'Con alerta': { c: '#A8720F', d: 'Proyecto de dictamen notificado; en garantía de audiencia.', eleg: false },
+  'Bloqueado': { c: '#B3261E', d: 'Dictamen firme de conversión posterior al corte; no elegible.', eleg: false },
+  'En restauración': { c: '#235B4E', d: 'Proyecto de restauración y compensación registrados; no elegible hasta verificar.', eleg: false },
+  'Rehabilitado': { c: '#235B4E', d: 'Restauración y compensación verificadas; elegible con vigilancia reforzada.', eleg: true },
 };
 // Transiciones permitidas y rol que puede ejecutarlas
 export const TRANS = [

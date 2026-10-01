@@ -38,12 +38,12 @@ export function forestSeries(p) {
   return { pts: out.filter(x => x[1] != null), drop, base };
 }
 export function forestChart(p, w = 560, h = 210) {
-  const s = forestSeries(p); const v = [{ x: 2012, label: 'Fuego ref. 2012', color: '#F97316' }, { x: 2018, label: 'Ref. 2018', color: '#F59E0B' }]; if (s.drop && s.drop.y > 1996 && p.cls !== 'verde') v.push({ x: s.drop.y, label: 'Pérdida ' + s.drop.y, color: '#EF4444' });
-  return ch.line([{ name: 'Cobertura arbórea (%)', color: '#34D399', pts: s.pts, area: true, dots: false }], { w, h, ymax: 100, ymin: 0, yu: '', xticks: [1995, 2000, 2005, 2010, 2015, 2020, 2025], vlines: v, xmin: 1993, xmax: 2025 });
+  const s = forestSeries(p); const v = [{ x: 2012, label: 'Fuego ref. 2012', color: '#A8720F' }, { x: 2018, label: 'Ref. 2018', color: '#A8720F' }]; if (s.drop && s.drop.y > 1996 && p.cls !== 'verde') v.push({ x: s.drop.y, label: 'Pérdida ' + s.drop.y, color: '#B3261E' });
+  return ch.line([{ name: 'Cobertura arbórea (%)', color: '#235B4E', pts: s.pts, area: true, dots: false }], { w, h, ymax: 100, ymin: 0, yu: '', xticks: [1995, 2000, 2005, 2010, 2015, 2020, 2025], vlines: v, xmin: 1993, xmax: 2025 });
 }
 export function varsBars(p) {
   if (!p.v) return '<div class="dim tiny">Índice de Reversibilidad disponible sólo para predios con daño confirmado.</div>';
-  return VARS.map((v, i) => `<div class="hbar" title="${esc(v.hint)}"><span>${v.k} · ${esc(v.name)}</span><span class="bar"><i style="width:${p.v[i] / v.max * 100}%;background:${p.v[i] / v.max > .66 ? '#22C55E' : p.v[i] / v.max > .33 ? '#EAB308' : '#EF4444'}"></i></span><span>${p.v[i]}/${v.max}</span></div>`).join('');
+  return VARS.map((v, i) => `<div class="hbar" title="${esc(v.hint)}"><span>${v.k} · ${esc(v.name)}</span><span class="bar"><i style="width:${p.v[i] / v.max * 100}%;background:${p.v[i] / v.max > .66 ? '#2E7D32' : p.v[i] / v.max > .33 ? '#BC955C' : '#B3261E'}"></i></span><span>${p.v[i]}/${v.max}</span></div>`).join('');
 }
 
 // ---------- Imagen ilustrativa antes/después ----------
@@ -60,12 +60,12 @@ export function synthScene(cv, p, mode, ring) {
     const areaPx = (x1 - x0) * kx * sc * (y1 - y0) * sc * .6; const rad = Math.max(30, Math.sqrt(frac * areaPx / Math.PI) * 1.05);
     c.save(); path(); c.clip(); c.beginPath(); c.arc(cx, cy, rad, 0, 6.3); c.clip();
     c.fillStyle = '#5c4b36'; c.fillRect(0, 0, W, H); for (let i = 0; i < 300; i++) { c.fillStyle = r() < .5 ? '#6b5940' : '#4d3f2d'; c.fillRect(r() * W, r() * H, 6 + r() * 14, 3 + r() * 6); }
-    const rowsOn = p.cls !== 'amarillo'; if (rowsOn) { for (let yy = cy - rad; yy < cy + rad; yy += 12) { for (let xx = cx - rad; xx < cx + rad; xx += 12) { c.fillStyle = p.ly >= 2023 ? '#8bc26a' : '#4f9a45'; c.beginPath(); c.arc(xx + Math.sin(yy * .3) * 2, yy, p.ly >= 2023 ? 2 : 3.4, 0, 6.3); c.fill(); } } c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1; for (let yy = cy - rad; yy < cy + rad; yy += 36) { c.beginPath(); c.moveTo(cx - rad, yy); c.quadraticCurveTo(cx, yy + 14, cx + rad, yy); c.stroke(); } }
+    const rowsOn = p.cls !== 'amarillo'; if (rowsOn) { for (let yy = cy - rad; yy < cy + rad; yy += 12) { for (let xx = cx - rad; xx < cx + rad; xx += 12) { c.fillStyle = p.ly >= 2023 ? '#8bc26a' : '#4f9a45'; c.beginPath(); c.arc(xx + Math.sin(yy * .3) * 2, yy, p.ly >= 2023 ? 2 : 3.4, 0, 6.3); c.fill(); } } c.strokeStyle = 'rgba(15,42,36,.25)'; c.lineWidth = 1; for (let yy = cy - rad; yy < cy + rad; yy += 36) { c.beginPath(); c.moveTo(cx - rad, yy); c.quadraticCurveTo(cx, yy + 14, cx + rad, yy); c.stroke(); } }
     if (p.cau && p.cau.startsWith('Infra') || (rowsOn && r() < .35)) { c.fillStyle = '#0a2b35'; c.strokeStyle = '#5fb6c9'; c.lineWidth = 2; c.fillRect(cx + rad * .2, cy - rad * .5, 46, 28); c.strokeRect(cx + rad * .2, cy - rad * .5, 46, 28); }
     c.restore();
   }
-  path(); c.strokeStyle = '#34D399'; c.lineWidth = 2; c.setLineDash([7, 4]); c.stroke(); c.setLineDash([]);
-  c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(W - 168, H - 22, 168, 22); c.fillStyle = '#CBD5E1'; c.font = '10px JetBrains Mono, monospace'; c.fillText('IMAGEN ILUSTRATIVA · DEMO', W - 162, H - 7);
+  path(); c.strokeStyle = '#235B4E'; c.lineWidth = 2; c.setLineDash([7, 4]); c.stroke(); c.setLineDash([]);
+  c.fillStyle = 'rgba(15,42,36,.55)'; c.fillRect(W - 168, H - 22, 168, 22); c.fillStyle = '#F2F4F0'; c.font = '10px IBM Plex Mono, monospace'; c.fillText('IMAGEN ILUSTRATIVA · DEMO', W - 162, H - 7);
 }
 export function beforeAfter(host, p) {
   const ring = prediosById[p.id].geometry.coordinates[0]; const d1 = p.ly ? (p.ly - 1) : 2017, d2 = p.ly ? Math.min(2026, p.ly + 1) : 2026;

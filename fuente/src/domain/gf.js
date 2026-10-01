@@ -16,8 +16,8 @@ const cellIdx = new Map(CELLS.map(c => [c.i + ',' + c.j, c]));
 export const SAMPLE = gf.meta.tesela_muestra.bbox;
 export const inSample = (lon, lat) => lon >= SAMPLE[0] && lon <= SAMPLE[2] && lat >= SAMPLE[1] && lat <= SAMPLE[3];
 export const GF_TOT = Object.values(gf.mun).reduce((a, m) => { for (const k of ['orch', 'orchHa', 'exp', 'expHa', 'forest', 'ollas', 'ollasHa', 'rep']) a[k] = (a[k] || 0) + m[k]; return a; }, {});
-export const HULL_COL = { 'Deforestación': '#EF4444', 'Incendio': '#F97316', 'Aprovechamiento': '#EAB308', 'Sanidad': '#A78BFA', 'Combinado': '#F472B6' };
-export const CHORO = { orchHa: ['Superficie de huertas (ha)', '#F59E0B'], expHa: ['Huertas de exportación (ha)', '#FB923C'], forest: ['Bosque remanente (ha)', '#22C55E'], ollas: ['Ollas de agua detectadas', '#38BDF8'], rep: ['Superficie denunciada (ha)', '#EF4444'], presion: ['Huerta / bosque remanente', '#F43F5E'] };
+export const HULL_COL = { 'Deforestación': '#B3261E', 'Incendio': '#A8720F', 'Aprovechamiento': '#BC955C', 'Sanidad': '#9F2241', 'Combinado': '#9F2241' };
+export const CHORO = { orchHa: ['Superficie de huertas (ha)', '#A8720F'], expHa: ['Huertas de exportación (ha)', '#A8720F'], forest: ['Bosque remanente (ha)', '#2E7D32'], ollas: ['Ollas de agua detectadas', '#45544F'], rep: ['Superficie denunciada (ha)', '#B3261E'], presion: ['Huerta / bosque remanente', '#9F2241'] };
 export const munVal = (id, k) => { const m = gf.mun[id]; if (!m) return 0; return k === 'presion' ? (m.forest ? m.orchHa / m.forest : 0) : m[k]; };
 
 // Imagen bosque detectado (overlay)
