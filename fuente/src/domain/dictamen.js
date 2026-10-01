@@ -4,6 +4,7 @@ import { esc, fmt } from '../util.js';
 import { sha256Str, sha256Bytes, ledgerAppend } from '../integrity.js';
 import { MET, PARAMS, ESTADOS, hById, dating, cortes, fires, spiSeries, sequia, coiCheck, pOf, ringOf, todayIso, maskRfc } from './core.js';
 import { zip } from './zip.js';
+import { evidence, imgsAround } from './gf.js';
 
 export const lang = () => S.lang || 'es';
 export const t = (es, en) => (lang() === 'en' ? en : es);
@@ -28,7 +29,7 @@ export function payloadFor(h, tipo, actor, corteDatos, ts) {
       criterio_incendio: c.fuego ? { fecha: c.fuego.fecha, dnbr: c.fuego.dnbr } : null, regla_conciliacion: c.regla, evaluacion_aplicable: c.aplica,
       sequia: { spi: sq.spi, delta_altura_dosel_m: sq.dh, lectura: sq.txt }, estado_legal_resultante: h.estado,
     },
-    evidencias: { escenas_anuales: d.scenes.length, observaciones_densas: d.dense.length, focos_incendio: fs.length, script: 'reproducir.py (MET-VD-BRK v1)' },
+    evidencias: { guardian_forestal: (() => { const e = evidence(ringOf(h)); const im = imgsAround(e.imgs, d.win); return { consulta: '2026-09-30', en_muestra: e.muestra, alertas_2018_2024: e.alertas.reduce((a, b) => a + b, 0), alertas_2026: e.ev.length, incendios_conafor: e.fires.length, anp: e.anp ? e.anp.name : null, nucleo_agrario: e.ran ? e.ran.name : null, imagen_antes: im.antes, imagen_despues: im.despues }; })(), escenas_anuales: d.scenes.length, observaciones_densas: d.dense.length, focos_incendio: fs.length, script: 'reproducir.py (MET-VD-BRK v1)' },
     dictaminador: actor, demo: true,
   };
 }
@@ -65,6 +66,7 @@ export function docHTML(dic, { publico = false, bil = true } = {}) {
   ${row(b('Sequía (CHIRPS/SPI) y dosel', 'Drought (CHIRPS/SPI) and canopy'), `SPI ${R.sequia.spi} · Δ altura ${R.sequia.delta_altura_dosel_m} m — ${esc(R.sequia.lectura)}`)}
   ${row(b('Estado legal resultante', 'Resulting legal status'), b(esc(R.estado_legal_resultante), EST_EN[R.estado_legal_resultante]))}</table>
   <h2>${b('Evidencia y reproducibilidad', 'Evidence and reproducibility')}</h2><p>${b(`Escenas anuales: ${P.evidencias.escenas_anuales}; observaciones densas: ${P.evidencias.observaciones_densas}; focos de incendio: ${P.evidencias.focos_incendio}. El expediente incluye los identificadores de escena, la huella SHA-256 de cada archivo y el script que reproduce el resultado.`, `The case file lists scene IDs, SHA-256 of each file and the script that reproduces this finding.`)}</p>
+  <h2>${b('Evidencia de Guardián Forestal', 'Guardián Forestal evidence')}</h2><table>${(() => { const g = P.evidencias.guardian_forestal || {}; return row(b('Alertas 2018-2024 en el entorno', 'Alerts 2018-2024 nearby'), g.en_muestra ? fmt(g.alertas_2018_2024) : b('Fuera de la muestra', 'Outside sample')) + row(b('Incendios CONAFOR', 'CONAFOR fires'), g.en_muestra ? fmt(g.incendios_conafor) : '—') + row(b('Área natural protegida', 'Protected area'), g.anp ? esc(g.anp) : '—') + row(b('Núcleo agrario', 'Agrarian unit'), g.nucleo_agrario ? esc(g.nucleo_agrario) : '—') + row(b('Imagen anterior / posterior', 'Image before / after'), `${g.imagen_antes || '—'} / ${g.imagen_despues || '—'}`); })()}</table>
   <h2>${b('Fundamento y garantías', 'Legal basis and due process')}</h2><p>${b('Fundamento jurídico: conforme al instrumento aplicable (a definir por la Dirección Jurídica). Contra este dictamen procede recurso de revisión ante un área distinta de la que dictaminó, dentro de ' + PARAMS.plazoRecursoDH + ' días hábiles.', 'An appeal may be lodged with a separate review unit within ' + PARAMS.plazoRecursoDH + ' business days.')}</p>
   <h2>${b('Firma y sello de tiempo', 'Signature and timestamp')}</h2><table>
   ${row(b('Huella del dictamen (SHA-256)', 'Determination hash (SHA-256)'), `<span class="m">${dic.hash}</span>`)}
