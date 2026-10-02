@@ -10,6 +10,8 @@ import { prepPts } from '../map.js';
 import { procedimientos as procView } from './portales.js';
 import { constanciaProductor } from './origen.js';
 import { ensureDemo } from '../domain/process.js';
+import { hByPid } from '../domain/core.js';
+import { expediente, semChip, SEM, NOTA_SEMAFOROS } from '../domain/mce.js';
 
 // productor de demostración: el que tenga más predios
 const byPrd = {}; S.predios.features.forEach(f => (byPrd[f.properties.prd] ||= []).push(f.properties.id));
@@ -43,11 +45,16 @@ function panel(main) {
   return () => map.destroy();
 }
 
+// M1 · tres semáforos de exportación por huerta (el productor sólo ve los suyos)
+const fal = pid => { const h = hByPid[pid]; if (!h) return '<span class="tiny dim">—</span>'; const x = expediente(h); return [x.semaforo_fito, x.semaforo_amb, x.semaforo_lab].map((s, i) => `<i class="dot" title="${['Fitosanitario', 'Ambiental', 'Laboral'][i]}: ${esc(s.txt)}" style="background:${SEM[s.color][1]};margin-right:3px"></i>`).join(''); };
+const expCard = pid => { const h = hByPid[pid]; if (!h) return ''; const x = expediente(h); const que = { fito: { verde: 'Sin acciones.', ambar: 'Concluya la certificación de temporada ante SENASICA.', rojo: 'Tramite la certificación SENASICA de la temporada.', gris: 'Sin dato: depende del convenio con SENASICA (SICOA).' }, amb: { verde: 'Sin acciones.', ambar: 'Atienda la audiencia o aporte evidencia en el plazo.', rojo: 'No exportable: dictamen firme. Consulte la ruta de remediación.', azul: 'Cumpla el programa de restauración y compensación.' }, lab: { verde: 'Sin acciones.', ambar: 'Regularice el registro patronal o el REPSE de su cadena.', rojo: 'Su cadena no alcanza el porcentaje de la fase vigente del CLA.', fuera: 'Fuera del umbral del CLA; no bloquea.', gris: 'No aplica.' } };
+  return `<div class="card" style="margin-top:10px;box-shadow:none;border:1px solid rgba(111,124,119,.25)"><div class="ch"><h3>Expediente de exportación · temporada vigente</h3><div class="sp">${tag('demo')}</div></div><table class="tbl" style="margin-top:6px"><tbody>${[['Fitosanitario (SENASICA)', x.semaforo_fito, 'fito'], ['Ambiental (corte 2019)', x.semaforo_amb, 'amb'], ['Laboral (CLA)', x.semaforo_lab, 'lab']].map(r => `<tr><td class="tiny"><b>${r[0]}</b><div class="dim">${esc(r[1].txt)}</div></td><td>${semChip(r[1])}</td><td class="tiny">${que[r[2]][r[1].color] || ''}</td></tr>`).join('')}</tbody></table><div class="tiny dim" style="margin-top:6px">Los tres se evalúan por separado; para exportar, ninguno puede estar en rojo. ${esc(NOTA_SEMAFOROS)}</div></div>`; };
+
 function predios(main) {
   if (gate(main, () => predios(main))) return;
   const ms = mine(); let sel = ms[0].id;
-  main.innerHTML = hdr('Mis predios', 'Polígonos, clasificación y expediente de cada predio inscrito a su nombre.', `<button class="btn pri" id="ins">${icon('plus', 15)} Inscribir predio</button>`) + `<div class="grid g32"><div class="tw"><table class="tbl"><thead><tr><th>Folio</th><th>Municipio</th><th class="num">Ha</th><th>Semáforo</th><th>Constancia</th></tr></thead><tbody>${ms.map(p => `<tr class="cl ${p.id === sel ? 'act' : ''}" data-id="${p.id}"><td class="mono">${p.id}</td><td>${esc(munName[p.mun])}</td><td class="num">${fmt(p.ha, 1)}</td><td>${badge(p.cls)}</td><td>${conChip(p.con)}</td></tr>`).join('')}</tbody></table></div><div class="card" id="fi"></div></div>`;
-  const show = id => { sel = id; $$('tr.cl', main).forEach(r => r.classList.toggle('act', r.dataset.id === id)); $('#fi', main).innerHTML = predioFicha(id, 'productor') + `<div class="note tiny" style="margin-top:10px"><b>Siguiente paso:</b> ${nextStep(prediosById[id].properties)}</div>`; }; show(sel);
+  main.innerHTML = hdr('Mis predios', 'Polígonos, clasificación y expediente de cada predio inscrito a su nombre.', `<button class="btn pri" id="ins">${icon('plus', 15)} Inscribir predio</button>`) + `<div class="grid g32"><div class="tw"><table class="tbl"><thead><tr><th>Folio</th><th>Municipio</th><th class="num">Ha</th><th>Semáforo forestal</th><th title="Fitosanitario · Ambiental · Laboral">Exportación F·A·L</th><th>Constancia</th></tr></thead><tbody>${ms.map(p => `<tr class="cl ${p.id === sel ? 'act' : ''}" data-id="${p.id}"><td class="mono">${p.id}</td><td>${esc(munName[p.mun])}</td><td class="num">${fmt(p.ha, 1)}</td><td>${badge(p.cls)}</td><td>${fal(p.id)}</td><td>${conChip(p.con)}</td></tr>`).join('')}</tbody></table></div><div class="card" id="fi"></div></div>`;
+  const show = id => { sel = id; $$('tr.cl', main).forEach(r => r.classList.toggle('act', r.dataset.id === id)); $('#fi', main).innerHTML = predioFicha(id, 'productor') + expCard(id) + `<div class="note tiny" style="margin-top:10px"><b>Siguiente paso:</b> ${nextStep(prediosById[id].properties)}</div>`; }; show(sel);
   on(main, 'click', 'tr.cl', (e, r) => show(r.dataset.id));
   $('#ins', main).onclick = () => inscribir();
 }

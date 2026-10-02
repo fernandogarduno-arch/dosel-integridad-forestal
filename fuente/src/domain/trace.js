@@ -6,7 +6,14 @@ import { sha256Str, ledgerAppend } from '../integrity.js';
 import { H, hById, PARAMS, CULTIVOS, ESTADOS, pOf, centroid, ringOf, elegibilidad, dating, todayIso } from './core.js';
 
 const exporta = h => CULTIVOS.find(c => c.k === h.cul)?.exporta;
-export const capacidad = h => +(pOf(h).ha * (PARAMS.rendimiento[h.cul] || 0)).toFixed(1); // t/temporada
+// Rendimiento por municipio y franja de altitud (tabla SIAP; valores ILUSTRATIVOS hasta cargar la tabla oficial)
+export const BANDAS = [['< 1,800 m', 0, 1800, 12.0], ['1,800 – 2,100 m', 1800, 2100, 10.5], ['2,100 – 2,400 m', 2100, 2400, 9.0], ['> 2,400 m', 2400, 9999, 7.5]];
+export const altitud = h => { const r = rng('ALT' + h.uid); const c = centroid(h); return Math.round(1450 + 1050 * Math.min(1, Math.max(0, (c[1] - 19.0) / 0.8)) * .6 + r() * 520); }; // demo: modelo de elevación pendiente de ingesta
+const munF = {}; const factorMun = mun => (munF[mun] ??= +(0.9 + rng('SIAP' + mun)() * 0.2).toFixed(2));
+export const SIAP = { fuente: 'SIAP · rendimiento de aguacate por municipio (tabla ilustrativa: cargar la oficial)', ilustrativo: true, overrides: {} };
+export const bandaDe = h => BANDAS.find(b => altitud(h) >= b[1] && altitud(h) < b[2]);
+export function rendimiento(h) { if (h.cul !== 'Aguacate') return PARAMS.rendimiento[h.cul] || 0; const b = bandaDe(h); const k = h.mun + '|' + b[0]; return SIAP.overrides[k] ?? +(b[3] * factorMun(h.mun)).toFixed(1); }
+export const capacidad = h => +(pOf(h).ha * rendimiento(h)).toFixed(1); // t/temporada
 // ---------- Empacadoras ----------
 export const EMP = Array.from({ length: 80 }, (_, i) => { const r = rng('E' + i); const hs = H.filter(h => exporta(h)); const c = centroid(hs[Math.floor(r() * hs.length)]); return { id: 'EMP-' + String(i + 1).padStart(2, '0'), nombre: 'Empacadora de demostración ' + String(i + 1).padStart(2, '0'), mun: hs[0].mun, lon: c[0] + (r() - .5) * .05, lat: c[1] + (r() - .5) * .05, cert: r() < .92 ? 'Vigente' : 'En renovación' }; });
 // ---------- Lotes de la temporada 2025-2026 ----------
@@ -59,7 +66,8 @@ export const newCompRing = (h, ha, seed) => { const r = rng(seed); const c = cen
 export function lineaCaptura(concepto, monto, rfc) { const base = 'LC' + todayIso().replace(/-/g, '') + String(Math.floor(monto * 100)).padStart(9, '0') + sha256Str(concepto + rfc + Date.now()).replace(/\D/g, '').slice(0, 6); const dv = String(98 - Number(BigInt(base.replace(/\D/g, '') + '00') % 97n)).padStart(2, '0'); return base + dv; }
 export function recaudacion() { const m = {}; S.lotes.forEach(l => { const k = l.fecha.slice(0, 7); m[k] = (m[k] || 0) + PARAMS.cuotaLote; }); return Object.keys(m).sort().map(k => [k, m[k]]); }
 // ---------- Laboral (IMSS) y ISN ----------
-const labCache = {}; export function laboral(h) { if (labCache[h.uid]) return labCache[h.uid]; const r = rng('IM' + h.uid); const esp = Math.max(1, Math.round(pOf(h).ha * PARAMS.trabajadoresHa)); const reg = r() < .78; const aseg = reg ? Math.max(0, Math.round(esp * (.4 + r() * .9))) : 0; return (labCache[h.uid] = { registro: reg ? 'RP-' + String(Math.floor(r() * 1e9)).padStart(10, '0') : null, esperados: esp, asegurados: aseg, isn: reg && r() < .7, brecha: aseg < esp * .6 }); }
+// Sin conteos de plazas ni datos personales de trabajadores: sólo registro patronal e ISN del productor (el resto lo aporta VELAGRO / CLA)
+const labCache = {}; export function laboral(h) { if (labCache[h.uid]) return labCache[h.uid]; const r = rng('IM' + h.uid); const reg = r() < .78; if (reg) r(); return (labCache[h.uid] = { registro: reg ? 'RP-' + String(Math.floor(r() * 1e9)).padStart(10, '0') : null, isn: reg && r() < .7 }); }
 // ---------- Agua: concesiones CONAGUA vs ollas detectadas ----------
 S.pozos = []; S.ollas = [];
 (function seed() { const hs = H.filter(h => pOf(h).ha > 2); hs.forEach((h, i) => { const r = rng('W' + h.uid); const c = centroid(h); if (r() < .22) S.pozos.push({ id: 'REPDA-DEMO-' + String(i).padStart(5, '0'), lon: c[0] + (r() - .5) * .006, lat: c[1] + (r() - .5) * .006, uso: r() < .8 ? 'Agrícola' : 'Múltiple', vol: Math.round(20000 + r() * 180000) }); if (r() < .3) S.ollas.push({ id: 'OLL-' + String(i).padStart(5, '0'), uid: h.uid, lon: c[0] + (r() - .5) * .004, lat: c[1] + (r() - .5) * .004, m2: Math.round(400 + r() * 6000), det: (2017 + Math.floor(r() * 9)) + '' }); }); S.ollas.forEach(o => { const near = S.pozos.reduce((b, p) => { const d = haversine([o.lon, o.lat], [p.lon, p.lat]); return d < b.d ? { d, p } : b; }, { d: 1e9, p: null }); o.pozo = near.d < 500 ? near.p.id : null; o.dist = Math.round(near.d); o.vol = Math.round(o.m2 * 3.2); o.conv = dating(hById[o.uid]).brk?.y || null; }); })();

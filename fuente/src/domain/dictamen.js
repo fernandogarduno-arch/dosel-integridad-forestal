@@ -2,9 +2,12 @@
 import { S, munName } from '../state.js';
 import { esc, fmt } from '../util.js';
 import { sha256Str, sha256Bytes, ledgerAppend } from '../integrity.js';
-import { MET, PARAMS, ESTADOS, hById, dating, cortes, fires, spiSeries, sequia, coiCheck, pOf, ringOf, todayIso, maskRfc } from './core.js';
+import { MET, PARAMS, ESTADOS, hById, dating, cortes, fires, spiSeries, sequia, coiCheck, pOf, ringOf, todayIso, maskRfc, setAnpFn } from './core.js';
+import { olofsson, demoSample } from './accuracy.js';
 import { zip } from './zip.js';
 import { evidence, imgsAround } from './gf.js';
+setAnpFn(h => { const e = evidence(ringOf(h)); return e.anp ? e.anp.name : null; });
+export const MODOS = ['Constancia estatal (decreto 2024)', 'Insumo técnico para SEMARNAT'];
 
 export const lang = () => S.lang || 'es';
 export const t = (es, en) => (lang() === 'en' ? en : es);
@@ -17,19 +20,22 @@ let seq = 1200;
 const nowZ = () => new Date().toISOString().replace(/\.\d+Z/, 'Z');
 export function cert(uid) { return { serie: '00001000000' + sha256Str('CERT' + uid).replace(/\D/g, '').slice(0, 9), emisor: 'SAT (e.firma) — simulada en la demostración' }; }
 
-export function payloadFor(h, tipo, actor, corteDatos, ts) {
+export function payloadFor(h, tipo, actor, corteDatos, ts, modo = MODOS[0]) {
   const p = pOf(h), d = dating(h), c = cortes(h); const fs = fires(h);
   const y = d.brk ? d.brk.y : 2026; const sq = sequia(h, Math.min(2026, y));
   return {
-    folio: null, tipo, metodologia: `${MET.id} v${MET.ver}`, fecha_corte_datos: corteDatos, emitido: ts,
+    folio: null, tipo, modo, metodologia: `${MET.id} v${MET.ver}`, fecha_corte_datos: corteDatos, emitido: ts,
     huerta: { uid: h.uid, clave_senasica: h.senasica, clave_catastral: h.catastral, nucleo_agrario: h.ran, titular_rfc_enmascarado: maskRfc(h.rfc), municipio: munName[h.mun], cultivo: h.cul, superficie_ha: p.ha },
     resultado: {
+      condicion_forestal: { pregunta_1: c.condicion.pregunta1, respuesta_1: c.condicion.c1, cobertura_arborea_al_corte_pct: c.condicion.cobertura_corte, pregunta_2: c.condicion.pregunta2, custf: c.condicion.custf, resultado: c.condicion.resultado, motivo: c.condicion.motivo },
+      reglas: { proforest: { deforestacion_desde: PARAMS.corteEstatal.fecha, incendio_desde: PARAMS.corteFuego.fecha, anp: c.anp, evaluacion: c.proforest }, exportacion: { corte: PARAMS.corteFederal.fecha, base: PARAMS.corteFederal.base, evaluacion: c.exportacion }, ruta_restauracion: { periodo: PARAMS.rutaRestauracion.ini + '/' + PARAMS.rutaRestauracion.fin, aplica: c.ruta } },
+      exactitud_clasificador: (() => { const R = olofsson(S.accSample || demoSample()); return { exactitud_global: +R.oa.toFixed(3), ic95: +(1.96 * R.oaSe).toFixed(3), fuente: 'Exactitud medida (Olofsson et al. 2014)' }; })(),
       ruptura: d.brk ? { anio: d.brk.y, magnitud_pp: d.brk.mag, cobertura_antes: d.brk.antes, cobertura_despues: d.brk.despues } : null,
       ventana_conversion: d.win, corte_estatal: { fecha: PARAMS.corteEstatal.fecha, evaluacion: c.estatal }, corte_federal: { fecha: PARAMS.corteFederal.fecha, evaluacion: c.federal },
-      criterio_incendio: c.fuego ? { fecha: c.fuego.fecha, dnbr: c.fuego.dnbr } : null, regla_conciliacion: c.regla, evaluacion_aplicable: c.aplica,
+      criterio_incendio: c.fuego ? { fecha: c.fuego.fecha, dnbr: c.fuego.dnbr } : null, evaluacion_aplicable: c.exportacion,
       sequia: { spi: sq.spi, delta_altura_dosel_m: sq.dh, lectura: sq.txt }, estado_legal_resultante: h.estado,
     },
-    evidencias: { guardian_forestal: (() => { const e = evidence(ringOf(h)); const im = imgsAround(e.imgs, d.win); return { consulta: '2026-09-30', en_muestra: e.muestra, alertas_2018_2024: e.alertas.reduce((a, b) => a + b, 0), alertas_2026: e.ev.length, incendios_conafor: e.fires.length, anp: e.anp ? e.anp.name : null, nucleo_agrario: e.ran ? e.ran.name : null, imagen_antes: im.antes, imagen_despues: im.despues }; })(), escenas_anuales: d.scenes.length, observaciones_densas: d.dense.length, focos_incendio: fs.length, script: 'reproducir.py (MET-VD-BRK v1)' },
+    evidencias: { guardian_forestal: (() => { const e = evidence(ringOf(h)); const im = imgsAround(e.imgs, d.win); return { consulta: '2026-09-30', en_muestra: e.muestra, alertas_2018_2024: e.alertas.reduce((a, b) => a + b, 0), alertas_2026: e.ev.length, incendios_conafor: e.fires.length, anp: e.anp ? e.anp.name : null, nucleo_agrario: e.ran ? e.ran.name : null, imagen_antes: im.antes, imagen_despues: im.despues }; })(), escenas_anuales: d.scenes.length, escenas_ids: [d.scenes[0] && d.scenes[0].id, d.scenes.at(-1) && d.scenes.at(-1).id].filter(Boolean), observaciones_densas: d.dense.length, focos_incendio: fs.length, script: 'reproducir.py (MET-VD-BRK v1)' },
     dictaminador: actor, demo: true,
   };
 }
@@ -38,11 +44,30 @@ export function emitir(h, user, tipo = 'Dictamen de elegibilidad', o = {}) {
   const c = coiCheck(user, h); if (!c.ok) return c;
   const det = S.cases && S.cases.find(k => k.uid === h.uid && k.steps.some(s => s.k === 'revision'));
   if (det && det.steps.find(s => s.k === 'revision').actor === user.id) return { ok: false, why: 'Quien detectó no puede dictaminar' };
-  const ts = o.ts || nowZ(); const pay = payloadFor(h, tipo, user.id, o.corte || todayIso(), ts); pay.folio = `DIC-2026-${String(++seq).padStart(6, '0')}`;
+  const rr = reglaRojo(h, tipo, o); if (!rr.ok) return rr;
+  const ts = o.ts || nowZ(); const pay = payloadFor(h, tipo, user.id, o.corte || todayIso(), ts, o.modo || MODOS[0]); pay.folio = `DIC-${ts.slice(0, 4)}-${String(++seq).padStart(6, '0')}`; if (rr.justificacion) pay.justificacion_sin_campo = rr.justificacion;
   const js = JSON.stringify(pay); const hash = sha256Str(js); const ce = cert(user.id);
   const dic = { folio: pay.folio, uid: h.uid, tipo, ts, actor: user.id, pay, js, hash, firma: { cert: ce.serie, emisor: ce.emisor, valor: sha256Str('FIRMA-SIMULADA|' + ce.serie + '|' + hash), simulada: true }, nom151: { psc: 'PSC acreditado (simulado)', ts, constancia: sha256Str('NOM151-SIMULADA|' + ts + '|' + hash), simulada: true } };
-  const d0 = dating(h); dic.snap = { pts: d0.pts, scenes: d0.scenes, dense: d0.dense, fires: fires(h), spi: spiSeries(h.mun), params: { metodologia: MET.id + ' v' + MET.ver, umbral_ruptura: PARAMS.umbralRuptura, corte_estatal: PARAMS.corteEstatal.fecha, corte_federal: PARAMS.corteFederal.fecha, corte_fuego: PARAMS.corteFuego.fecha, ventana_fuego_anios: PARAMS.ventanaFuegoAnios, conciliacion: PARAMS.conciliacion }, ring: ringOf(h) };
+  const d0 = dating(h); dic.snap = { pts: d0.pts, scenes: d0.scenes, dense: d0.dense, fires: fires(h), spi: spiSeries(h.mun), params: { metodologia: MET.id + ' v' + MET.ver, umbral_ruptura: PARAMS.umbralRuptura, corte_estatal: PARAMS.corteEstatal.fecha, corte_federal: PARAMS.corteFederal.fecha, corte_fuego: PARAMS.corteFuego.fecha, ventana_fuego_anios: PARAMS.ventanaFuegoAnios, ruta_ini: PARAMS.rutaRestauracion.ini, ruta_fin: PARAMS.rutaRestauracion.fin, anp: pay.resultado.reglas.proforest.anp, custf_vigente: null }, ring: ringOf(h) };
   S.dictamenes.unshift(dic); if (!o.seed) ledgerAppend(S.ledger, user.id, 'DICTAMEN_EMITIDO', dic.folio, hash); return { ok: true, dic };
+}
+// Regla: no se firma un rojo (dictamen de conversión / no elegible) sin revisión humana registrada y verificación de campo o justificación escrita
+export function reglaRojo(h, tipo, o = {}) {
+  if (tipo !== 'Dictamen de conversión') return { ok: true };
+  const k = o.caso || (S.cases || []).find(c => c.uid === h.uid && c.steps.some(s => s.k === 'revision'));
+  const humana = k && k.steps.some(s => s.k === 'revision' && /^(DET|DIC|CAM|REV)-/.test(s.actor));
+  const campo = k && k.steps.some(s => s.k === 'campo');
+  if (!humana) return { ok: false, why: 'No se firma un dictamen rojo sin revisión humana registrada en el expediente' };
+  if (!campo && !(o.justificacion || '').trim()) return { ok: false, why: 'No se firma un dictamen rojo sin verificación de campo o justificación escrita' };
+  return { ok: true, justificacion: campo ? null : o.justificacion };
+}
+// Entregas a SEMARNAT (dictámenes en modo «insumo técnico»)
+S.entregasSemarnat = S.entregasSemarnat || [];
+export function entregarSemarnat(dic, user) {
+  if (dic.pay.modo !== MODOS[1]) return { ok: false, why: 'Sólo los dictámenes en modo «insumo técnico para SEMARNAT» se entregan a la autoridad federal' };
+  if (S.entregasSemarnat.some(e => e.folio === dic.folio)) return { ok: false, why: 'Este dictamen ya se entregó' };
+  const e = { folio: dic.folio, uid: dic.uid, ts: nowZ(), actor: user.id, acuse: 'SEMARNAT-ACUSE-' + sha256Str(dic.hash + 'S').slice(0, 10).toUpperCase(), sha: dic.hash, certificadoFederal: null };
+  S.entregasSemarnat.unshift(e); ledgerAppend(S.ledger, user.id, 'ENTREGA_SEMARNAT', dic.folio, dic.hash); return { ok: true, e };
 }
 export function verificarDictamen(dic) { const h = sha256Str(dic.js); return { hash: h === dic.hash, firma: dic.firma.valor === sha256Str('FIRMA-SIMULADA|' + dic.firma.cert + '|' + h), sello: dic.nom151.constancia === sha256Str('NOM151-SIMULADA|' + dic.nom151.ts + '|' + h) }; }
 
@@ -55,13 +80,14 @@ export function docHTML(dic, { publico = false, bil = true } = {}) {
   <div class="inst">Gobierno del Estado · Módulo de Verificación y Dictamen Forestal</div><h1>${b(esc(dic.tipo), dic.tipo === 'Dictamen de elegibilidad' ? 'Eligibility determination' : 'Land-use conversion determination')}</h1>
   <table style="margin-top:10px">${row(b('Folio', 'Reference'), `<span class="m">${dic.folio}</span>`)}${row(b('Fecha de emisión', 'Issued'), dic.ts)}${row(b('Fecha de corte de datos', 'Data cut-off'), P.fecha_corte_datos)}${row(b('Metodología', 'Methodology'), P.metodologia)}</table>
   <h2>${b('Huerta', 'Orchard')}</h2><table>${row('UID', `<span class="m">${P.huerta.uid}</span>`)}${row(b('Clave SENASICA', 'SENASICA ID'), P.huerta.clave_senasica || '—')}${row(b('Clave catastral', 'Cadastral ID'), P.huerta.clave_catastral)}${row(b('Núcleo agrario (RAN)', 'Agrarian unit (RAN)'), P.huerta.nucleo_agrario || '—')}${publico ? '' : row(b('Titular (RFC enmascarado)', 'Holder (masked tax ID)'), P.huerta.titular_rfc_enmascarado)}${row(b('Municipio', 'Municipality'), esc(P.huerta.municipio))}${row(b('Cultivo · superficie', 'Crop · area'), `${esc(P.huerta.cultivo)} · ${fmt(P.huerta.superficie_ha, 2)} ha`)}</table>
+  ${P.resultado.condicion_forestal ? `<h2>${b('Condición forestal (prueba de dos condiciones)', 'Forest-land condition (two-part test)')}</h2><table>${row('1. ' + esc(P.resultado.condicion_forestal.pregunta_1), esc({ si: 'Sí', no: 'No', indeterminado: 'Indeterminado' }[P.resultado.condicion_forestal.respuesta_1]) + (P.resultado.condicion_forestal.cobertura_arborea_al_corte_pct != null ? ` · cobertura arbórea al corte ${P.resultado.condicion_forestal.cobertura_arborea_al_corte_pct} %` : ''))}${row('2. ' + esc(P.resultado.condicion_forestal.pregunta_2), esc(P.resultado.condicion_forestal.custf.estado || '—'))}${row(b('Condición forestal', 'Forest-land condition'), `<b>${esc(P.resultado.condicion_forestal.resultado === 'acreditada' ? 'Acreditada' : 'No acreditada')}</b> — ${esc(P.resultado.condicion_forestal.motivo)}`)}${row(b('Modo del dictamen', 'Mode'), esc(P.modo || MODOS[0]))}${P.resultado.exactitud_clasificador ? row(b('Exactitud del clasificador vigente', 'Classifier accuracy'), `${(P.resultado.exactitud_clasificador.exactitud_global * 100).toFixed(1)} % ± ${(P.resultado.exactitud_clasificador.ic95 * 100).toFixed(1)} (IC 95 %)`) : ''}</table>` : ''}
   <h2>${b('Resultado técnico', 'Technical finding')}</h2><table>
   ${row(b('Ruptura de cobertura arbórea', 'Tree-cover break'), R.ruptura ? `${R.ruptura.anio} · −${R.ruptura.magnitud_pp} pp (${R.ruptura.cobertura_antes} % → ${R.ruptura.cobertura_despues} %)` : b('No detectada 1993–2026', 'None detected 1993–2026'))}
   ${row(b('Ventana de conversión', 'Conversion window'), R.ventana_conversion ? `${R.ventana_conversion.ini} → ${R.ventana_conversion.fin} (${esc(R.ventana_conversion.fuente)})` : '—')}
-  ${row(b(`Corte estatal (${R.corte_estatal.fecha})`, `State cut-off (${R.corte_estatal.fecha})`), b(evTxt(R.corte_estatal.evaluacion, 'es'), evTxt(R.corte_estatal.evaluacion, 'en')))}
-  ${row(b(`Corte federal (${R.corte_federal.fecha})`, `Federal cut-off (${R.corte_federal.fecha})`), b(evTxt(R.corte_federal.evaluacion, 'es'), evTxt(R.corte_federal.evaluacion, 'en')))}
+  ${row(b(`Fecha Pro-Forest (${R.corte_estatal.fecha})`, `Pro-Forest date (${R.corte_estatal.fecha})`), b(evTxt(R.corte_estatal.evaluacion, 'es'), evTxt(R.corte_estatal.evaluacion, 'en')))}
+  ${row(b(`Fecha de exportación (${R.corte_federal.fecha})`, `Export date (${R.corte_federal.fecha})`), b(evTxt(R.corte_federal.evaluacion, 'es'), evTxt(R.corte_federal.evaluacion, 'en')))}
   ${row(b('Criterio de incendio (2012)', 'Fire criterion (2012)'), R.criterio_incendio ? `${R.criterio_incendio.fecha} · dNBR ${R.criterio_incendio.dnbr}` : b('Sin incendio seguido de conversión', 'No fire followed by conversion'))}
-  ${row(b('Regla de conciliación', 'Reconciliation rule'), esc(R.regla_conciliacion))}
+  ${R.reglas ? row(b('Regla Pro-Forest (2018, incendio 2012, ANP)', 'Pro-Forest rule'), b(evTxt(R.reglas.proforest.evaluacion, 'es'), evTxt(R.reglas.proforest.evaluacion, 'en')) + (R.reglas.proforest.anp ? ' · ANP: ' + esc(R.reglas.proforest.anp) : '')) + row(b('Regla de exportación (Acuerdo DOF 24 oct 2025: 2019)', 'Export rule (2019)'), b(evTxt(R.reglas.exportacion.evaluacion, 'es'), evTxt(R.reglas.exportacion.evaluacion, 'en'))) + row(b('Ruta de restauración (afectación 2019–2025)', 'Restoration path (2019–2025)'), R.reglas.ruta_restauracion.aplica ? b('Aplica', 'Applies') : b('No aplica', 'Not applicable')) : ''}
   ${row(b('Evaluación aplicable', 'Applicable finding'), `<b>${b(evTxt(R.evaluacion_aplicable, 'es'), evTxt(R.evaluacion_aplicable, 'en'))}</b>`)}
   ${row(b('Sequía (CHIRPS/SPI) y dosel', 'Drought (CHIRPS/SPI) and canopy'), `SPI ${R.sequia.spi} · Δ altura ${R.sequia.delta_altura_dosel_m} m — ${esc(R.sequia.lectura)}`)}
   ${row(b('Estado legal resultante', 'Resulting legal status'), b(esc(R.estado_legal_resultante), EST_EN[R.estado_legal_resultante]))}</table>
@@ -112,19 +138,25 @@ def corte(f):
     if win['fin'] < f: return 'cumple'
     return 'indeterminado'
 e, fe = corte(P['corte_estatal']), corte(P['corte_federal'])
-R = {'cumple': 0, 'indeterminado': 1, 'incumple': 2}
-ap = e if P['conciliacion'] == 'estatal' else fe if P['conciliacion'] == 'federal' else (e if R[e] >= R[fe] else fe)
 fuego = None
 if brk:
     for r in rd('incendios.csv'):
         y = int(r['fecha'][:4])
         if r['fecha'] >= P['corte_fuego'] and float(r['dnbr']) >= 0.27 and y <= brk['anio'] and brk['anio'] - y <= P['ventana_fuego_anios']: fuego = r['fecha']; break
-if fuego: ap = 'incumple'
-out = {'ruptura': brk, 'ventana': win, 'corte_estatal': e, 'corte_federal': fe, 'incendio': fuego, 'aplicable': ap}
+# Tres reglas con efectos distintos (no se concilian)
+pf = 'incumple' if (fuego or P.get('anp')) else e      # Pro-Forest: 2018, incendio desde 2012, fuera de ANP
+ap = fe                                                 # Exportación: Acuerdo DOF 24 oct 2025 (2019)
+ruta = bool(win and brk and win['fin'] >= P['ruta_ini'] and win['ini'] <= P['ruta_fin'])
+# Prueba de dos condiciones: fuera de terreno forestal al corte, o CUSTF vigente
+c1 = 'si' if fe == 'cumple' else 'no' if fe == 'incumple' else 'indeterminado'
+cond = 'acreditada' if (c1 == 'si' or P.get('custf_vigente')) else 'no acreditada'
+out = {'ruptura': brk, 'ventana': win, 'proforest': pf, 'exportacion': ap, 'ruta_restauracion': ruta, 'incendio': fuego, 'condicion_forestal': cond}
 print(json.dumps(out, ensure_ascii=False, indent=1))
 # 3) comparación con el dictamen
 dic = json.load(open(os.path.join(D, 'dictamen.json'), encoding='utf-8'))['payload']['resultado']
-same = (dic['evaluacion_aplicable'] == ap and dic['corte_estatal']['evaluacion'] == e and dic['corte_federal']['evaluacion'] == fe
+rg = dic.get('reglas') or {}
+same = (dic['evaluacion_aplicable'] == ap and (rg.get('proforest') or {}).get('evaluacion') == pf and (rg.get('ruta_restauracion') or {}).get('aplica') == ruta
+        and (dic.get('condicion_forestal') or {}).get('resultado') == cond
         and (dic['ruptura'] or {}).get('anio') == (brk or {}).get('anio') and (dic['ventana_conversion'] or {}).get('ini') == (win or {}).get('ini'))
 print('Resultado reproducido:', 'COINCIDE con el dictamen' if same and not bad else 'NO COINCIDE')
 sys.exit(0 if same and not bad else 1)

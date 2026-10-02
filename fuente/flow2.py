@@ -92,7 +92,9 @@ with sync_playwright() as p:
     role('DIC-01'); go('admin', 'compensaciones'); pg.click('#nw'); pg.wait_for_timeout(200)
     opts = pg.eval_on_selector_all('#po option', 'o=>o.map(x=>x.value)'); pg.select_option('#po', opts[1]); pg.click('#ok'); pg.wait_for_timeout(300)
     ok('Doble uso de compensación rechazado', 'no puede usarse dos veces' in toast(), toast()[:90])
-    pg.select_option('#po', 'new'); pg.click('#ok'); pg.wait_for_timeout(300); t = toast()
+    pg.select_option('#po', 'new')
+    if pg.is_enabled('#pex'): pg.select_option('#pau', 'PROFEPA'); pg.fill('#pex', 'PFPA/23.2/2C.27.2/0099-26')
+    pg.click('#ok'); pg.wait_for_timeout(300); t = toast()
     ok('Compensación nueva registrada', 'registrada' in t, t[:90])
     # 8. Empacadora
     go('empacadora', 'recepcion'); links = pg.query_selector_all('[data-u]'); links[0].click(); pg.fill('#tn', '9'); pg.click('#ok'); pg.wait_for_timeout(300)
@@ -102,7 +104,7 @@ with sync_playwright() as p:
     pg.evaluate("window.__go('empacadora','recepcion')"); pg.wait_for_timeout(300); pg.click('#ok'); pg.wait_for_timeout(300)
     ok('Empacadora: huerta elegible aceptada', 'autorizada' in pg.inner_text('#out'), pg.inner_text('#out')[:60])
     # 9. Gobernanza
-    go('admin', 'gobernanza'); ok('Pruebas automáticas de reglas', '7/7 correctas' in pg.inner_text('#bd'))
+    go('admin', 'gobernanza'); import re as _re; _m = _re.search(r'(\d+)/(\d+) correctas', pg.inner_text('#bd')); ok('Pruebas automáticas de reglas', bool(_m) and _m.group(1) == _m.group(2) and int(_m.group(1)) >= 20, _m.group(0) if _m else [x.inner_text().replace('\n', ' | ')[:200] for x in pg.query_selector_all('#bd .chk') if 'bad' in (x.get_attribute('class') or '') or '✕' in x.inner_text()][:5] or pg.inner_text('#bd')[:300])
     # 10. Bitácora
     go('admin', 'bitacora'); pg.click('#vf'); pg.wait_for_timeout(200); ok('Bitácora íntegra tras las acciones', 'Cadena íntegra' in pg.inner_text('#main'))
     # 11. Público bilingüe

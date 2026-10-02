@@ -2,7 +2,10 @@ import { GF, GFP, CELLS, HULL_COL, CHORO, munVal, bosqueImg } from './domain/gf.
 import { GeoMap, mx, my, inPoly } from './map.js';
 import { G, P, S, ST, munName, prediosById } from './state.js';
 import { CLS, esc, fmt, fdate, pip, polyAreaHa, badge, TODAY } from './util.js';
+import { hByPid } from './domain/core.js';
 
+// Semáforo ambiental de exportación (M1): Libre/Rehabilitado verde; En revisión/Con alerta ámbar; Bloqueado rojo; En restauración: restauración
+const AMB_COL = { 'Libre': '#2E7D32', 'Rehabilitado': '#2E7D32', 'En revisión': '#A8720F', 'Con alerta': '#A8720F', 'Bloqueado': '#B3261E', 'En restauración': '#235B4E' };
 export const AL_COLOR = { 'Detectada': '#235B4E', 'En validación': '#A8720F', 'Confirmada': '#A8720F', 'Notificada': '#9F2241', 'En audiencia': '#9F2241', 'Firme': '#B3261E', 'Descartada': '#6F7C77' };
 export const SAT_URL = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
@@ -28,6 +31,7 @@ export function createMap(el, opts = {}) {
   const pf = p => f.cls.has(p.cls) && (!f.cul || p.cul === f.cul) && (!f.mun || p.mun === f.mun) && (!f.ids || f.ids.has(p.id));
   map.addLayer('predios', { type: 'poly', data: P.predios, order: 20, pickable: true, minZ: 7.4, minPx: 4, dotR: 2.1, filter: pf,
     style: (p, z) => { const c = CLS[p.cls].color; const sel = map.sel === p.id; const hov = map.hover && map.hover.layer === 'predios' && map.hover.p.id === p.id;
+      if (f.colorMode === 'ambiental') { const h = hByPid[p.id]; const cc = h ? AMB_COL[h.estado] : '#6F7C77'; return { fill: cc, fa: sel ? .85 : .62, stroke: sel ? '#FFFFFF' : cc, lw: sel ? 2.4 : 1.1, alpha: 1 }; }
       if (f.colorMode === 'cultivo') { const cc = { Aguacate: '#2E7D32', Berries: '#9F2241', Durazno: '#A8720F', 'Maíz': '#BC955C', Agave: '#235B4E', Otro: '#6F7C77' }[p.cul]; return { fill: cc, fa: .5, stroke: cc, lw: 1, alpha: 1 }; }
       return { fill: c, fa: sel ? .8 : hov ? .7 : (map.tiles ? .6 : .48), stroke: sel ? '#FFFFFF' : map.tiles ? 'rgba(242,244,240,.95)' : c, lw: sel ? 2.4 : map.tiles ? 1.3 : 1.1, glow: sel ? '#235B4E' : null }; } });
   map.addLayer('heat', { type: 'custom', order: 22, visible: !!opts.heat, draw: (m, ctx) => { if (m.v.z > 10.2) return; ctx.globalCompositeOperation = 'lighter'; const r = 26 * Math.max(.6, (m.v.z - 5.5) / 2); for (const o of P.alertas) { if (!f.alStates.has(o.p.st)) continue; const [sx, sy] = m.toScreen(o.x, o.y); const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, r); g.addColorStop(0, 'rgba(179,38,30,.30)'); g.addColorStop(.5, 'rgba(168,114,15,.10)'); g.addColorStop(1, 'rgba(168,114,15,0)'); ctx.fillStyle = g; ctx.fillRect(sx - r, sy - r, r * 2, r * 2); } ctx.globalCompositeOperation = 'source-over'; } });

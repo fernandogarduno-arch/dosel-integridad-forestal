@@ -9,20 +9,25 @@ import { sha256Str } from '../integrity.js';
 // ---------------- Parámetros normativos (configurables, versionados) ----------------
 export const MET = { id: 'MET-VD', ver: '1.0.0', fecha: '2026-09-15', estado: 'Borrador para validación académica' };
 export const PARAMS = {
-  corteEstatal: { fecha: '2018-01-01', nombre: 'Corte estatal 2018', base: 'Programa Pro-Forest (decreto estatal)' },
-  corteFederal: { fecha: '2019-01-01', nombre: 'Corte federal 2019', base: 'Acuerdo publicado en el DOF (fecha exacta a confirmar por Jurídico)' },
-  corteFuego: { fecha: '2012-01-01', nombre: 'Criterio de incendio 2012', base: 'Criterio de certificación: incendio seguido de cambio de uso' },
-  conciliacion: 'estricta', // estricta = aplica el corte más restrictivo · estatal · federal
+  // Tres reglas de corte con efectos distintos (no se concilian): Pro-Forest, exportación y ruta de restauración
+  corteEstatal: { fecha: '2018-01-01', nombre: 'Pro-Forest 2018', base: 'Programa Pro-Forest (decreto estatal): deforestación desde el 1-ene-2018, incendio desde 2012, fuera de ANP' },
+  corteFederal: { fecha: '2019-01-01', nombre: 'Exportación 2019', base: 'Acuerdo DOF 24 oct 2025: 2019' },
+  corteFuego: { fecha: '2012-01-01', nombre: 'Criterio de incendio 2012', base: 'Regla Pro-Forest: incendio seguido de cambio de uso' },
+  rutaRestauracion: { ini: '2019-01-01', fin: '2025-12-31', base: 'Afectación 2019–2025: ruta de restauración y compensación' },
+  umbralForestal: 30, // % de cobertura arbórea a la fecha de corte para considerar terreno forestal (a homologar con INEGI USV serie VII / INF)
+  custf: { conectado: false, fuente: 'Autorizaciones de cambio de uso de suelo en terreno forestal (CUSTF) · SEMARNAT', estado: 'Sin conexión por convenio' },
   ventanaFuegoAnios: 5,
   umbralRuptura: 20, // puntos de cobertura arbórea (%) entre medias antes/después
   spiSequia: -1.5,
   plazoAudienciaDH: 10, plazoRecursoDH: 15,
   umbralPublicacion: { ua: .85, pa: .80, semiIC: .25 },
-  balanceTolerancia: 1.15, balanceFraude: 1.35,
+  balanceTolerancia: 1.15, balanceFraude: 1.30, // editables (MET-VD); la especificación propone 1.3 para posible lavado
+  trabajadoresTonelada: null, // pendiente de DOF (Factor Técnico)
+  slaBalanceHoras: 72,
   rendimiento: { Aguacate: 10, Berries: 18, Durazno: 12, 'Limón': 14, Agave: 0, 'Maíz': 0, Otro: 0 }, // t/ha/año, calibrar con SIAP y aforo
   compensacion: { min: 3, max: 6 }, // ha de bosque por ha convertida
   cuotaLote: 185, // MXN por lote verificado (ilustrativa, a costo de recuperación)
-  trabajadoresHa: .35, // trabajadores asegurados esperados por ha productiva
+  sicoa: { conectado: false, simulado: false, fuente: 'SICOA · SENASICA (registro y certificación de huertas por temporada)', estado: 'Sin conexión: convenio pendiente' },
 };
 export const CULTIVOS = [ // diseño multicultivo: agregar un cultivo = agregar una fila
   { k: 'Aguacate', exporta: true, ciclo: 'Perenne', regla: 'Corte forestal + balance de masa' },
@@ -186,13 +191,25 @@ export function detectBreak(pts, thr) {
 export function refineWindow(dense) { const i = dense.findIndex(o => o.bosque === 0); if (i <= 0) return null; return { ini: dense[i - 1].fecha, fin: dense[i].fecha }; }
 export function evalCorte(win, fecha) { if (!win) return 'cumple'; if (win.ini >= fecha) return 'incumple'; if (win.fin < fecha) return 'cumple'; return 'indeterminado'; }
 const RANK = { cumple: 0, indeterminado: 1, incumple: 2 };
+const anpCache = new Map(); export const setAnpFn = fn => { anpFn = fn; anpCache.clear(); }; let anpFn = null;
+export const anpDe = h => { if (!anpFn) return null; if (!anpCache.has(h.uid)) anpCache.set(h.uid, anpFn(h) || null); return anpCache.get(h.uid); };
 export function cortes(h) {
   const d = dating(h); const e = evalCorte(d.win, PARAMS.corteEstatal.fecha), f = evalCorte(d.win, PARAMS.corteFederal.fecha);
   const fs = fires(h); const fireConv = d.brk ? fs.find(x => x.fecha >= PARAMS.corteFuego.fecha && x.dnbr >= .27 && +x.fecha.slice(0, 4) <= d.brk.y && d.brk.y - +x.fecha.slice(0, 4) <= PARAMS.ventanaFuegoAnios) : null;
-  let aplica = PARAMS.conciliacion === 'estatal' ? e : PARAMS.conciliacion === 'federal' ? f : (RANK[e] >= RANK[f] ? e : f);
-  if (fireConv) aplica = 'incumple';
-  const disc = e !== f;
-  return { estatal: e, federal: f, aplica, disc, fuego: fireConv || null, regla: fireConv ? 'Criterio de incendio 2012 (prevalece)' : PARAMS.conciliacion === 'estricta' ? 'Se aplica el corte más restrictivo' : 'Se aplica el corte ' + PARAMS.conciliacion, win: d.win, brk: d.brk };
+  const anp = anpDe(h);
+  const proforest = fireConv || anp ? 'incumple' : e; const exportacion = f;
+  const R = PARAMS.rutaRestauracion; const ruta = !!(d.win && d.brk && d.win.fin >= R.ini && d.win.ini <= R.fin);
+  const c = { estatal: e, federal: f, proforest, exportacion, ruta, anp, aplica: exportacion, disc: proforest !== exportacion, fuego: fireConv || null, regla: 'Exportación: ' + PARAMS.corteFederal.base, win: d.win, brk: d.brk };
+  c.condicion = condicionForestal(h, c, d); return c;
+}
+// Prueba de dos condiciones (minuta LGDFS): 1) ¿fuera de terreno forestal a la fecha de corte? 2) si no, ¿CUSTF vigente que cubra la superficie?
+export function condicionForestal(h, c, d = dating(h)) {
+  const y = +PARAMS.corteFederal.fecha.slice(0, 4); const pt = d.pts.find(p => p[0] === y) || d.pts.filter(p => p[0] <= y).pop() || null;
+  const c1 = c.exportacion === 'cumple' ? 'si' : c.exportacion === 'incumple' ? 'no' : 'indeterminado';
+  const custf = PARAMS.custf.conectado ? null : { consulta: false, estado: PARAMS.custf.estado };
+  const res = c1 === 'si' ? 'acreditada' : 'no acreditada';
+  return { pregunta1: `¿Fuera de terreno forestal al ${PARAMS.corteFederal.fecha}?`, c1, cobertura_corte: pt ? pt[1] : null, umbral: PARAMS.umbralForestal, pregunta2: '¿CUSTF vigente que cubra la superficie?', custf, resultado: res,
+    motivo: c1 === 'si' ? (d.brk ? `La conversión ocurrió antes de la fecha de corte (${d.win.ini} → ${d.win.fin})` : 'Sin conversión de bosque en la serie 1993–2026') : c1 === 'no' ? 'Era terreno forestal a la fecha de corte; no se pudo acreditar CUSTF (capa sin conexión)' : 'La ventana de conversión cruza la fecha de corte; requiere verificación de campo o evidencia documental' };
 }
 // Sequía vs pérdida real: caída espectral + SPI ≤ umbral + altura de dosel estable → estrés hídrico probable
 export function sequia(h, year) { const spi = spiAt(h.mun, year); const dh = h.canopy.actual - h.canopy.base; return { spi, dh: +dh.toFixed(1), probable: spi <= PARAMS.spiSequia && dh > -4, txt: spi <= PARAMS.spiSequia ? (dh > -4 ? 'Año seco y dosel estable: probable estrés hídrico, no pérdida' : 'Año seco, pero la altura del dosel cayó: pérdida estructural') : 'Lluvia normal: la caída no se explica por sequía' }; }
@@ -207,6 +224,7 @@ let _lv = null; export function listaVersion(force) { if (_lv && !force) return 
 export const elegibles = () => H.filter(h => ESTADOS[h.estado].eleg && CULTIVOS.find(c => c.k === h.cul)?.exporta);
 
 // ---------------- Cambio de estado legal (con rol, evidencia y bitácora) ----------------
-export function canTransit(h, to, user) { const t = TRANS.find(x => x[0] === h.estado && x[1] === to); if (!t) return { ok: false, why: `Transición no permitida: ${h.estado} → ${to}` }; if (user.rol !== t[2]) return { ok: false, why: `Sólo el rol «${ROLES[t[2]].n}» puede ejecutar esta transición` }; const c = coiCheck(user, h); if (!c.ok) return c; return { ok: true, t }; }
+let _guard = null; export const setTransitGuard = f => { _guard = f; }; // reglas de negocio de otros módulos (p. ej., procedimiento de autoridad obligatorio)
+export function canTransit(h, to, user) { const t = TRANS.find(x => x[0] === h.estado && x[1] === to); if (!t) return { ok: false, why: `Transición no permitida: ${h.estado} → ${to}` }; if (user.rol !== t[2]) return { ok: false, why: `Sólo el rol «${ROLES[t[2]].n}» puede ejecutar esta transición` }; const c = coiCheck(user, h); if (!c.ok) return c; if (_guard) { const g = _guard(h, to); if (g && !g.ok) return g; } return { ok: true, t }; }
 export function coiCheck(user, h) { if (user.rol === 'auditor') return { ok: false, why: 'El auditor externo tiene acceso de sólo lectura' }; if (user.coi !== 'Firmada') return { ok: false, why: `${user.id} no tiene declaración de conflicto de interés vigente` }; if (h && !user.cartera.includes(h.mun)) return { ok: false, why: `${munName[h.mun]} no está en la cartera territorial asignada a ${user.id}` }; if (h && user.conflictos.includes(h.prd)) return { ok: false, why: `${user.id} declaró conflicto de interés con el titular de esta huerta` }; return { ok: true }; }
 export function transit(h, to, user, mot, evid, ledgerAppend) { const c = canTransit(h, to, user); if (!c.ok) return c; const ev = { ts: new Date().toISOString().replace(/\.\d+Z/, 'Z'), de: h.estado, a: to, rol: user.rol, actor: user.id, mot: mot || c.t[3], evid: evid || [] }; h.hist.push(ev); h.estado = to; ledgerAppend(S.ledger, user.id, 'ESTADO_' + to.toUpperCase().replace(/\s/g, '_'), h.uid, sha256Str(JSON.stringify(ev))); listaVersion(true); return { ok: true, ev }; }

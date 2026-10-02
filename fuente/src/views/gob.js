@@ -2,7 +2,7 @@ import { $, $$, on, esc, fmt, chip, toast, download } from '../util.js';
 import { S, munName } from '../state.js';
 import { kpi, tag, icon } from '../ui.js';
 import { ledgerAppend, ledgerVerify, sha256Str } from '../integrity.js';
-import { H, hById, USERS, ROLES, userById, me, PARAMS, MET, ESTADOS, TRANS, elegibilidad, elegibles, listaVersion, maskRfc, cortes, todayIso } from '../domain/core.js';
+import { H, hById, USERS, ROLES, userById, me, PARAMS, MET, ESTADOS, TRANS, elegibilidad, elegibles, listaVersion, maskRfc, cortes, todayIso, addBusinessDays } from '../domain/core.js';
 import { allowed, STAGES } from '../domain/process.js';
 import { t, EST_EN } from '../domain/dictamen.js';
 import { hdr, who } from './verif.js';
@@ -18,21 +18,48 @@ const RULES = [
   ['Motivación obligatoria de alegatos', 'no se firma sin valorar pruebas del productor'],
   ['Todo cambio en la bitácora encadenada', 'polígonos, alertas, estados, parámetros, descargas'],
 ];
+import { reglaRojo } from '../domain/dictamen.js';
+import { datosSeguridad, puedeVer, cambiarSemaforo, azulesSinProcedimiento, lotesFueraSinAlerta, expediente, accesoProductor, respuestaEmpacadora, respuestaPublica, NFR, pruebaCarga, verificarFolio, PERFILES } from '../domain/mce.js';
+import { constancia as constanciaH } from '../domain/origen.js';
 function probarReglas() {
   const mk = (stage, steps, extra = {}) => ({ id: 'TEST', uid: H.find(h => userById['DIC-01'].cartera.includes(h.mun)).uid, stage, estado: 'Abierto', steps, alegatos: [], ...extra });
   const tests = [
     ['Un analista de detección intenta emitir el proyecto de dictamen', allowed(mk('campo', [{ k: 'revision', actor: 'DET-03' }]), 'proyecto', userById['DET-03']), false],
     ['El dictaminador emite proyecto tras revisión y campo de otras personas', allowed(mk('campo', [{ k: 'revision', actor: 'DET-03' }, { k: 'campo', actor: 'CAM-02' }]), 'proyecto', userById['DIC-01']), true],
-    ['Dictamen firme antes de vencer el plazo de audiencia y sin alegatos', allowed(mk('audiencia', [], { vence: '2099-01-01' }), 'firme', userById['DIC-01']), false],
+    ['Dictamen firme antes de vencer el plazo de audiencia y sin alegatos', allowed(mk('audiencia', [], { vence: addBusinessDays(todayIso(), 6) }), 'firme', userById['DIC-01']), false],
     ['El mismo dictaminador intenta resolver el recurso', allowed(mk('recurso', [{ k: 'firme', actor: 'DIC-01' }]), 'resolver', { ...userById['DIC-01'], rol: 'revision' }), false],
     ['El revisor de segunda instancia resuelve el recurso', allowed(mk('recurso', [{ k: 'firme', actor: 'DIC-01' }]), 'resolver', userById['REV-01']), true],
     ['Dictaminador sin declaración de conflicto de interés', allowed(mk('campo', [{ k: 'revision', actor: 'DET-03' }]), 'proyecto', userById['DIC-09']), false],
     ['Auditor externo intenta validar una alerta', allowed(mk('alerta', []), 'validar', userById['AUD-EXT']), false],
   ];
-  return tests.map(([n, r, exp]) => ({ n, ok: r.ok === exp, got: r.ok ? 'permitido' : 'bloqueado: ' + r.why, exp: exp ? 'permitido' : 'bloqueado' }));
+  const h0 = H.find(h => userById['DIC-01'].cartera.includes(h.mun)); const prd = h0.prd; const otra = H.find(h => h.prd !== prd);
+  const tryR = f => { try { const r = f(); return r && r.ok !== undefined ? r : { ok: true }; } catch (e) { return { ok: false, why: e.message }; } };
+  const inv = (ok, why) => ({ ok, why, inv: true });
+  tests.push(
+    ['Firmar un dictamen rojo sin verificación de campo ni justificación escrita', reglaRojo(h0, 'Dictamen de conversión', { caso: mk('revision', [{ k: 'revision', actor: 'DET-03' }]) }), false],
+    ['Firmar un dictamen rojo con revisión humana y justificación escrita', reglaRojo(h0, 'Dictamen de conversión', { caso: mk('revision', [{ k: 'revision', actor: 'DET-03' }]), justificacion: 'Evidencia documental de conversión 2021' }), true],
+    ['El Dictaminador consulta la capa de seguridad (M9)', tryR(() => datosSeguridad(userById['DIC-01'])), false],
+    ['El rol Seguridad consulta la capa de seguridad (M9)', tryR(() => datosSeguridad(userById['SEG-01'])), true],
+    ['Seguridad intenta ver datos fiscales', { ok: puedeVer(userById['SEG-01'], 'recaudacion'), why: 'vista reservada a Finanzas' }, false],
+    ['Finanzas (SATMICH) intenta ver expedientes en trámite', { ok: puedeVer(userById['FIN-01'], 'expedientes'), why: 'Finanzas no ve dictámenes en trámite' }, false],
+    ['Finanzas (SATMICH) consulta su tablero fiscal', { ok: puedeVer(userById['FIN-01'], 'recaudacion') }, true],
+    ['Autoridad federal intenta editar un semáforo', cambiarSemaforo(h0, 'fito', 'verde', 'EV-PRUEBA', userById['FED-01']), false],
+    ['Cambiar un semáforo sin evidencia_id', cambiarSemaforo(h0, 'fito', 'verde', '', userById['DIC-01']), false],
+    ['Un productor consulta la huerta de otro titular', accesoProductor(prd, otra.uid), false],
+    ['La empacadora pide la evidencia completa de un tercero', { ok: 'evidencias' in respuestaEmpacadora(otra.uid) || 'hist' in respuestaEmpacadora(otra.uid), why: 'la respuesta sólo trae elegibilidad y folio' }, false],
+    ['El público obtiene el nombre o RFC del titular', { ok: ['rfc', 'titular', 'prd'].some(k => k in respuestaPublica(otra.uid)), why: 'la vista pública no incluye titulares' }, false],
+  );
+  const azul = azulesSinProcedimiento().length, geo = lotesFueraSinAlerta(), sinExp = H.filter(h => h.senasica && !expediente(h)).length, t0 = performance.now(), v = verificarFolio(constanciaH(h0).folio), ms = performance.now() - t0;
+  const invs = [
+    ['Toda huerta en restauración tiene procedimiento de autoridad', inv(azul === 0, azul + ' sin procedimiento')],
+    ['Cero lotes con origen fuera de la geocerca sin alerta', inv(geo === 0, geo + ' sin alerta')],
+    ['Ninguna huerta con clave SENASICA sin expediente de tres semáforos', inv(sinExp === 0, sinExp + ' sin expediente')],
+    ['Verificación de folio en menos de 10 s', inv(ms < 10000, ms.toFixed(1) + ' ms')],
+  ];
+  return tests.map(([n, r, exp]) => ({ n, ok: r.ok === exp, got: r.ok ? 'permitido' : 'bloqueado: ' + r.why, exp: exp ? 'permitido' : 'bloqueado' })).concat(invs.map(([n, r]) => ({ n, ok: r.ok, got: r.ok ? 'se cumple (' + r.why + ')' : 'no se cumple: ' + r.why, exp: 'se cumple' })));
 }
 const CYBER = [
-  ['Cuentas institucionales con doble factor (FIDO2/TOTP)', 'Implementado en la plataforma', 'ok'], ['Sin acceso con cuentas personales ni de servicios de IA de consumo', 'Política + bloqueo de dominio', 'ok'],
+  ['Cuentas institucionales con doble factor (FIDO2/TOTP)', 'Simulado en la demostración para roles sensibles; requiere Llave MX + FIDO2/TOTP en producción', 'warn'], ['Sin acceso con cuentas personales ni de servicios de IA de consumo', 'Política + bloqueo de dominio', 'ok'],
   ['Registro de accesos y de consultas a datos personales', 'Implementado en la plataforma', 'ok'], ['Bitácora encadenada con anclaje externo diario (sello NOM-151)', 'Requiere PSC contratado', 'warn'],
   ['Pruebas de penetración semestrales por tercero', 'Requiere contrato', 'warn'], ['Cifrado en reposo y en tránsito; llaves en HSM', 'Requiere infraestructura', 'warn'],
   ['Respaldo inmutable fuera de sitio (WORM)', 'Requiere infraestructura', 'warn'], ['Plan de respuesta a incidentes y ejercicio anual', 'Requiere acto administrativo', 'warn'],
@@ -51,14 +78,21 @@ const CONT = [
 function gobernanza(main) {
   let tab = 'sod';
   const draw = () => { main.innerHTML = hdr('Gobernanza, independencia y continuidad', 'Lo que un auditor extranjero va a revisar: separación de funciones aplicada en el sistema, conflicto de interés, bitácora inmutable, ciberseguridad y continuidad institucional.', who()) +
-    `<div class="tabs" id="tb">${[['sod', 'Separación de funciones'], ['per', 'Personal y conflicto de interés'], ['acc', 'Accesos'], ['cib', 'Ciberseguridad'], ['aud', 'Auditoría externa'], ['con', 'Continuidad']].map(([k, n]) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</div><div id="bd"></div>`;
+    `<div class="tabs" id="tb">${[['sod', 'Separación de funciones'], ['per', 'Personal y conflicto de interés'], ['acc', 'Accesos'], ['cib', 'Ciberseguridad'], ['nfr', 'Requisitos no funcionales'], ['aud', 'Auditoría externa'], ['con', 'Continuidad']].map(([k, n]) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}">${n}</button>`).join('')}</div><div id="bd"></div>`;
     const bd = $('#bd', main);
-    if (tab === 'sod') { const acts = [['Validar / descartar alerta', 'deteccion'], ['Registrar visita de campo', 'campo'], ['Proyecto de dictamen y notificación', 'dictamen'], ['Dictamen firme', 'dictamen'], ['Cambiar estado legal', 'dictamen'], ['Resolver recurso de revisión', 'revision'], ['Dar vista a PROFEPA / FGE', 'juridico'], ['Consultar bitácora y expedientes', 'auditor']]; const T = probarReglas();
+    if (tab === 'sod') { const acts = [['Validar / descartar alerta', 'deteccion'], ['Registrar visita de campo', 'campo'], ['Proyecto de dictamen y notificación', 'dictamen'], ['Dictamen firme', 'dictamen'], ['Cambiar estado legal', 'dictamen'], ['Resolver recurso de revisión', 'revision'], ['Dar vista a PROFEPA / FGE', 'juridico'], ['Emitir constancias de origen', 'dictamen'], ['Ver capa de seguridad (M9)', 'seguridad'], ['Tablero fiscal agregado y por RFC', 'finanzas'], ['Consultar y descargar expedientes por convenio', 'federal'], ['Consultar bitácora y expedientes', 'auditor']]; const T = probarReglas();
       bd.innerHTML = `<div class="grid g2"><div class="card"><div class="ch"><h3>Matriz de funciones</h3></div><div class="tw"><table class="tbl"><thead><tr><th>Acción</th>${Object.keys(ROLES).map(r => `<th class="num tiny">${ROLES[r].n}</th>`).join('')}</tr></thead><tbody>${acts.map(([a, r]) => `<tr><td class="tiny">${a}</td>${Object.keys(ROLES).map(k => `<td class="num">${k === r || (r === 'auditor') ? (k === r ? '<b style="color:#2E7D32">●</b>' : '<span class="dim">○</span>') : ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="tiny dim" style="margin-top:6px">● ejecuta · ○ consulta. Las reglas se validan en cada acción; no dependen del organigrama.</div></div>
       <div class="card"><div class="ch"><h3>Prueba automática de reglas</h3><div class="sp">${chip(T.every(x => x.ok) ? T.length + '/' + T.length + ' correctas' : 'Fallas', T.every(x => x.ok) ? 'ok' : 'bad')}</div></div>${T.map(x => `<div class="chk"><span class="ic ${x.ok ? 'ok' : 'fail'}">${x.ok ? '✓' : '✕'}</span><div><b>${esc(x.n)}</b><small>Esperado: ${x.exp} · Resultado: ${esc(x.got)}</small></div></div>`).join('')}</div></div>
+      <div class="card" style="margin-top:14px"><div class="ch"><h3>Roles y perfiles: puede / no puede</h3></div><div class="tw"><table class="tbl"><thead><tr><th>Rol</th><th>Puede</th><th>No puede</th></tr></thead><tbody>${Object.values(ROLES).map(r => `<tr><td><b>${esc(r.n)}</b><div class="tiny dim">${esc(r.area)}</div></td><td class="tiny">${esc(r.puede)}</td><td class="tiny">${esc(r.noPuede || '—')}</td></tr>`).join('')}${PERFILES.map(p => `<tr><td><b>${esc(p.rol)}</b><div class="tiny dim">Perfil del portal ${esc(p.portal)}</div></td><td class="tiny">${esc(p.puede)}</td><td class="tiny">${esc(p.noPuede)}</td></tr>`).join('')}</tbody></table></div></div>
       <div class="card" style="margin-top:14px"><div class="ch"><h3>Reglas aplicadas por el sistema</h3></div><div class="grid g2" style="margin-top:6px">${RULES.map(r => `<div class="tiny" style="padding:4px 0"><b>${r[0]}</b><div class="dim">${r[1]}</div></div>`).join('')}</div></div>`; }
     if (tab === 'per') bd.innerHTML = `<div class="note info tiny" style="margin-bottom:10px">El personal se identifica por alias en toda la plataforma. La identidad real sólo la conoce el área de recursos humanos y se entrega a autoridades con convenio cuando lo exige un procedimiento.</div><div class="card pad0"><div class="tw"><table class="tbl"><thead><tr><th>Alias</th><th>Rol</th><th>Área</th><th class="num">Municipios en cartera</th><th>Conflicto de interés</th><th>Rotación</th><th>Doble factor</th></tr></thead><tbody>${USERS.map(u => `<tr><td class="mono">${u.id}</td><td>${ROLES[u.rol].n}</td><td class="tiny">${ROLES[u.rol].area}</td><td class="num">${u.cartera.length}</td><td>${u.coi === 'Firmada' ? chip('Firmada ' + u.coiF, 'ok') : chip('Pendiente: no puede actuar', 'bad')}</td><td class="mono tiny">${u.rot}</td><td class="tiny">${u.mfa}</td></tr>`).join('')}</tbody></table></div></div><div style="margin-top:10px;display:flex;gap:8px"><button class="btn" id="rot">Rotar carteras de dictaminadores</button><button class="btn ghost" id="coi">Registrar declaración de DIC-09</button></div>`;
     if (tab === 'acc') { const ev = S.ledger.slice(-40).reverse(); bd.innerHTML = `<div class="card pad0"><div class="tw" style="max-height:520px"><table class="tbl"><thead><tr><th>Fecha</th><th>Usuario</th><th>Factor</th><th>Origen</th><th>Acción</th><th>Objeto</th></tr></thead><tbody>${ev.map(e => `<tr><td class="mono tiny">${e.ts.replace('T', ' ').slice(0, 16)}</td><td class="mono tiny">${esc(e.actor)}</td><td class="tiny">${userById[e.actor] ? userById[e.actor].mfa : e.actor.startsWith('EMP') ? 'Certificado de cliente (API)' : 'Llave MX'}</td><td class="mono tiny">10.12.${(sha256Str(e.actor).charCodeAt(3) % 200)}.xxx</td><td class="tiny"><b>${esc(e.acc)}</b></td><td class="mono tiny">${esc(e.obj)}</td></tr>`).join('')}</tbody></table></div></div>`; }
+    if (tab === 'nfr') { bd.innerHTML = `<div class="card pad0"><div class="tw"><table class="tbl"><thead><tr><th>Requisito</th><th>Cómo se atiende</th><th>Estado</th></tr></thead><tbody>${NFR().map(r => `<tr><td><b>${esc(r[0])}</b></td><td class="tiny">${esc(r[1])}</td><td>${chip(r[2], /^Operando/.test(r[2]) ? 'ok' : 'warn')}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="grid g2" style="margin-top:14px"><div class="card"><div class="ch"><h3>Prueba de carga · 59 mil huertas</h3></div><p class="tiny dim" style="margin:6px 0">Construye un índice de 59,000 identificadores y ejecuta 20,000 consultas de elegibilidad en este navegador. La prueba de servidor se hace antes de la fase 0.</p><button class="btn" id="ld">Ejecutar prueba</button><div id="ldo" style="margin-top:8px"></div></div>
+      <div class="card"><div class="ch"><h3>Verificador de folios</h3></div><p class="tiny dim" style="margin:6px 0">Requisito: respuesta en menos de 10 s desde el QR; disponibilidad 99.5 % en temporada (15-oct a abril).</p><button class="btn" id="vt">Medir verificación</button><div id="vto" style="margin-top:8px"></div></div></div>
+      <div class="note tiny" style="margin-top:12px"><b>Propiedad estatal del código y los datos:</b> el contrato debe establecer que el código fuente, los datos y la documentación son propiedad del Estado y se entregan en un repositorio institucional.</div>`;
+      $('#ld', bd).onclick = () => { const r = pruebaCarga(); ledgerAppend(S.ledger, me().id, 'PRUEBA_CARGA', '59000'); $('#ldo', bd).innerHTML = `<div class="verdict ok"><div><div class="big">${fmt(r.porSegundo)} consultas por segundo</div><div class="tiny dim">Índice de ${fmt(r.n)} huertas en ${r.indexMs} ms · ${fmt(r.consultas)} consultas en ${r.consultasMs} ms (${fmt(r.hits)} aciertos)</div></div></div>`; };
+      $('#vt', bd).onclick = () => { const f = constanciaH(H.find(h => h.cul === 'Aguacate' && h.senasica && constanciaH(h).estado === 'Vigente') || H.find(h => h.cul === 'Aguacate')).folio; const r = verificarFolio(f); $('#vto', bd).innerHTML = `<div class="verdict ${r.ms < 10000 ? 'ok' : 'fail'}"><div><div class="big">${r.ms} ms</div><div class="tiny dim">Folio ${f} · ${esc(r.tipo || '')} · ${r.valido ? 'válido' : 'sin efectos'}</div></div></div>`; }; }
     if (tab === 'cib') bd.innerHTML = `<div class="card">${CYBER.map(c => `<div class="chk"><span class="ic ${c[2] === 'ok' ? 'ok' : 'warn'}">${c[2] === 'ok' ? '✓' : '!'}</span><div><b>${esc(c[0])}</b><small>${esc(c[1])}</small></div></div>`).join('')}</div>`;
     if (tab === 'aud') { const lv = ledgerVerify(S.ledger); bd.innerHTML = `<div class="grid g3">${kpi({ l: 'Cadena de la bitácora', v: lv.ok ? 'Íntegra' : 'Rota', s: fmt(S.ledger.length) + ' registros', c: lv.ok ? '#2E7D32' : '#B3261E' })}${kpi({ l: 'Dictámenes con expediente reproducible', v: fmt(S.dictamenes.length), s: 'script + huellas SHA-256' })}${kpi({ l: 'Próxima auditoría externa', v: '2027-T1', s: 'institución por convenir', c: '#A8720F' })}</div>
       <div class="card" style="margin-top:14px"><div class="ch"><h3>Ciclo anual de la «auditoría de la auditoría»</h3></div><ol class="tiny" style="line-height:1.9;margin:6px 0 0 18px"><li>El auditor recibe acceso de sólo lectura (rol AUD-EXT) a la bitácora, expedientes y código.</li><li>Selecciona una muestra de dictámenes y reproduce cada resultado con el script del expediente.</li><li>Repite la evaluación de exactitud con una submuestra de campo propia.</li><li>Revisa la separación de funciones, conflictos de interés y rotación de carteras.</li><li>Prueba de penetración y revisión de controles de ciberseguridad.</li><li>Informe público y plan de corrección con fechas.</li></ol><button class="btn" id="pk" style="margin-top:10px">${icon('download', 14)} Paquete para el auditor (JSON)</button></div>`; }
@@ -83,7 +117,14 @@ export const DICT = [
   ['elegible', 'booleano', 'Elegible para exportación a la fecha de la lista', 'Export-eligible as of list version', 'Público'],
   ['ruptura_anio', 'entero', 'Año de ruptura de cobertura arbórea detectado', 'Detected tree-cover break year', 'Público'],
   ['ventana_conversion', 'intervalo', 'Fechas entre las que ocurrió la conversión', 'Dates bracketing the conversion', 'Público'],
-  ['corte_estatal / corte_federal', 'catálogo', 'cumple · indeterminado · incumple', 'compliant · undetermined · non-compliant', 'Público'],
+  ['regla_proforest', 'catálogo', 'Regla Pro-Forest (2018; incendio 2012; fuera de ANP): cumple · indeterminado · incumple', 'Pro-Forest rule (2018; fire 2012; outside protected areas): compliant · undetermined · non-compliant', 'Público'],
+  ['regla_exportacion', 'catálogo', 'Regla de exportación (Acuerdo DOF 24-oct-2025, corte 2019): cumple · indeterminado · incumple', 'Export rule (DOF 24-Oct-2025 agreement, 2019 cut-off): compliant · undetermined · non-compliant', 'Público'],
+  ['ruta_restauracion', 'booleano', 'Afectación 2019–2025 que entra a la ruta de restauración y compensación', '2019–2025 impact routed to restoration and offset', 'Público'],
+  ['condicion_forestal', 'catálogo', 'Prueba de dos condiciones: fuera de terreno forestal al corte o CUSTF vigente', 'Two-condition test: non-forest land at cut-off or valid land-use-change permit (CUSTF)', 'Público'],
+  ['semaforo_forestal', 'catálogo', 'Verde · amarillo · naranja · rojo · gris (reversibilidad del daño)', 'Green · yellow · orange · red · grey (damage reversibility)', 'Público'],
+  ['semaforo_fito / semaforo_amb / semaforo_lab', 'catálogo', 'Semáforos de exportación: fitosanitario (SICOA), ambiental y laboral (CLA)', 'Export lights: phytosanitary (SICOA), environmental and labour (CLA)', 'Interinstitucional'],
+  ['folio_constancia', 'texto', 'Folio de la constancia ambiental de origen (CAO-2627-XXXXXX), verificable por QR', 'Environmental origin certificate ID (CAO-2627-XXXXXX), QR-verifiable', 'Público'],
+  ['modo_dictamen', 'catálogo', 'Constancia estatal (decreto 2024) · Insumo técnico para SEMARNAT', 'State certificate (2024 decree) · Technical input for SEMARNAT', 'Público'],
   ['folio_dictamen', 'texto', 'Folio del dictamen vigente', 'Current determination reference', 'Público'],
   ['sha256', 'hex', 'Huella del dictamen o archivo', 'Hash of determination or file', 'Público'],
   ['lote / embarque', 'texto', 'Identificadores de la cadena huerta → lote → empacadora → embarque', 'Chain-of-custody identifiers', 'Interinstitucional'],
