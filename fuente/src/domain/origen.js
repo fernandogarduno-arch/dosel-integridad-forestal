@@ -85,8 +85,15 @@ export function constancia(h) {
   const estado = !ex ? 'No aplica' : blo.some(x => x.estado === 'no_cumple') ? 'No procede' : blo.some(x => x.estado === 'en_proceso') ? 'En trámite' : comps.some(x => ['no_cumple', 'observacion'].includes(x.estado) || (x.estado === 'en_proceso')) ? 'Condicionada' : 'Vigente';
   const pend = comps.filter(x => x.accion && x.estado !== 'cumple');
   const sha = sha256Str(JSON.stringify({ uid: h.uid, t: ACUERDO.temporada.id, v: PARAMS.constancia.version, estado, comps: comps.map(x => [x.k, x.estado, x.det]) }));
-  const v = { uid: h.uid, folio: 'CAO-2627-' + sha.slice(0, 6).toUpperCase(), estado, comps, pend, sha, cultivo: h.cul, municipio: munName[h.mun], ha: p.ha, cap: ex ? capacidad(h) : 0, vigencia: ACUERDO.temporada, plazo: estado === 'Condicionada' ? addBusinessDays(todayIso(), PARAMS.constancia.subsanacionDH) : null, emitida: (S.constancias || {})[h.uid] || null };
+  const v = { uid: h.uid, folio: folioDe(h.uid), estado, comps, pend, sha, cultivo: h.cul, municipio: munName[h.mun], ha: p.ha, cap: ex ? capacidad(h) : 0, vigencia: ACUERDO.temporada, plazo: estado === 'Condicionada' ? addBusinessDays(todayIso(), PARAMS.constancia.subsanacionDH) : null, emitida: (S.constancias || {})[h.uid] || null };
   cache.set(h.uid, { key, v }); return v;
+}
+// Folio estable por huerta y temporada (no cambia con nuevas entregas); la huella SHA-256 sí refleja el contenido vigente
+let _fol = null;
+export function folioDe(uid) {
+  if (!_fol) { _fol = new Map(); const used = new Set(); H.map(x => x.uid).sort().forEach(u => { const s = sha256Str('CAO|' + u + '|' + ACUERDO.temporada.id).toUpperCase(); let i = 0, f = 'CAO-2627-' + s.slice(0, 6); while (used.has(f) && i + 12 <= s.length) { i += 6; f = 'CAO-2627-' + s.slice(i, i + 6); } used.add(f); _fol.set(u, f); }); }
+  if (!_fol.has(uid)) _fol.set(uid, 'CAO-2627-' + sha256Str('CAO|' + uid + '|' + ACUERDO.temporada.id).slice(0, 6).toUpperCase());
+  return _fol.get(uid);
 }
 export const constanciaPorFolio = f => { f = String(f || '').toUpperCase().trim(); const e = Object.values(S.constancias).find(x => x.folio === f); if (e) return constancia(hById[e.uid]); return H.map(constancia).find(c => c.folio === f) || null; };
 export const universo = () => H.filter(h => h.cul === 'Aguacate' && exporta(h));

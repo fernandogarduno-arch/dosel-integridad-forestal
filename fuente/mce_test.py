@@ -163,6 +163,11 @@ with sync_playwright() as p:
     pg.fill('#arb-q', '¿Qué fecha de corte se aplica?'); pg.press('#arb-q', 'Enter'); pg.wait_for_timeout(900)
     txt = pg.text_content('#arb-log').lower()
     ok('Arbolín explica tres reglas separadas', 'tres reglas' in txt and 'pro-forest' in txt, txt[-200:])
+    # ---- Folio de constancia estable (el QR impreso no se rompe con nuevas entregas) ----
+    if pg.is_visible('#arb-x'): pg.click('#arb-x'); pg.wait_for_timeout(300)
+    go('ciudadano', 'elegibilidad'); pg.fill('#q', 'HUE-16044-00037'); pg.click('#go'); pg.wait_for_timeout(400); f1 = re.findall(r'CAO-2627-[0-9A-F]{6}', main())
+    go('empacadora', 'recepcion'); pg.fill('#uid', 'HUE-16044-00037'); pg.fill('#tn', '1'); pg.click('#ok'); pg.wait_for_timeout(500); f2 = set(re.findall(r'CAO-2627-[0-9A-F]{6}', main()))
+    ok('Folio de constancia estable tras una entrega', bool(f1) and f2 == {f1[0]}, (f1[:1], f2))
     ok('Sin errores de página', not errs, errs[:3])
     b.close()
 print('\n', sum(res), '/', len(res), 'pruebas correctas')

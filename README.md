@@ -34,4 +34,4 @@ Código en `fuente/src/domain/mce.js`, `fuente/src/views/mce.js` y `fuente/src/p
 - **M11 · Vista pública bilingüe**: auditoría externa, resultado del dictamen por municipio, diccionario de datos ES/EN y metodología con los dos semáforos.
 - **A1–A3**: detección (Guardián Forestal) separada del dictamen (autoridad estatal); «Finanzas (interno)» restringida al rol Finanzas; dictamen en dos modos con entrega a SEMARNAT.
 - Roles Seguridad, Finanzas y Federal; requisitos no funcionales con prueba de carga de 59 mil huertas; registro de parámetros y bloqueos externos (SICOA, CUSTF, OWP, VELAGRO, Factor Técnico, VUCEM, cuota) como parámetros vacíos y etiquetados.
-Pruebas: `fuente/mce_test.py` (63 verificaciones), además de `flow2.py` (28), `origen_test.py` (27), `arbolin_test.py` (46) y `smoke.py`.
+Pruebas: `fuente/mce_test.py` (64 verificaciones), además de `flow2.py` (28), `origen_test.py` (27), `arbolin_test.py` (46) y `smoke.py`.

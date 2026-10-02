@@ -142,6 +142,9 @@ export function alertasBalance() {
     return { ...b, detectada: det, horas, revisada: rv || null, vencida: !rv && horas > PARAMS.slaBalanceHoras };
   }).sort((a, b) => b.horas - a.horas);
 }
+// Siembra de demostración: las alertas de temporadas anteriores (más de 30 días) ya fueron revisadas dentro del SLA;
+// quedan pendientes sólo las recientes, como ocurriría en operación normal.
+(function seedRevisiones() { const dic = ['DIC-01', 'DIC-02', 'DIC-04']; alertasBalance().forEach((a, i) => { if (a.horas > 24 * 30 && !S.balanceRevisiones[a.h.uid]) { const d = new Date(a.detectada + 'T12:00:00Z'); d.setUTCHours(d.getUTCHours() + 20 + (i % 40)); S.balanceRevisiones[a.h.uid] = { ts: d.toISOString().replace(/\.\d+Z/, 'Z'), user: dic[i % 3], nota: a.flag === 'Posible lavado' ? 'Revisión de balance: turnado a auditoría de campo (demostración)' : 'Revisión de balance: rendimiento aclarado con aforo (demostración)', demo: true }; } }); })();
 export function revisarBalance(uid, user, nota) { if (soloLectura(user)) return { ok: false, why: 'Rol de sólo lectura' }; S.balanceRevisiones[uid] = { ts: nowZ(), user: user.id, nota: nota || 'Revisión de balance de masa' }; ledgerAppend(S.ledger, user.id, 'BALANCE_REVISADO', uid); return { ok: true }; }
 
 // =============== M6 · geocerca de la zona autorizada (municipios del OWP) ===============
