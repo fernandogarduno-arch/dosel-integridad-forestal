@@ -15,6 +15,7 @@ import { preparacion, ACUERDO } from '../domain/origen.js';
 import { H } from '../domain/core.js';
 import { NOTA_SEMAFOROS } from '../domain/mce.js';
 import { DICT } from './gob.js';
+import { t as tr } from '../domain/dictamen.js';
 
 const hdr = (t, p, act = '') => `<div class="page-h"><div><h1>${t}</h1>${p ? `<p>${p}</p>` : ''}</div><div class="act">${act}</div></div>`;
 const pub = () => { const ids = publicIds(); const rows = S.predios.features.filter(f => ids.has(f.properties.id)).map(f => f.properties); return { ids, rows, v: rows.filter(p => p.cls === 'verde').length, n: rows.filter(p => p.cls === 'naranja').length, r: rows.filter(p => p.cls === 'rojo').length }; };
@@ -143,7 +144,7 @@ function datos(main) {
       <div class="tw"><table class="tbl" id="dict"></table></div></div>`;
   const AC = { 'Público': ['Público', 'Public', 'ok'], 'Interinstitucional': ['Interinstitucional', 'Inter-agency', 'info'], 'Reservado': ['Reservado', 'Reserved', 'bad'] };
   const dict = l => { const en = l === 'en'; $('#dict', main).innerHTML = `<thead><tr><th>${en ? 'Field' : 'Campo'}</th><th>${en ? 'Type' : 'Tipo'}</th><th>${en ? 'Definition' : 'Definición'}</th><th>${en ? 'Access' : 'Acceso'}</th></tr></thead><tbody>${DICT.map(d => { const a = AC[d[4]] || [d[4], d[4], 'info']; return `<tr><td class="mono tiny">${esc(d[0])}</td><td class="tiny">${esc(en ? ({ texto: 'text', 'catálogo': 'code list', booleano: 'boolean', entero: 'integer', intervalo: 'interval', hex: 'hex' }[d[1]] || d[1]) : d[1])}</td><td class="tiny">${esc(en ? d[3] : d[2])}</td><td>${chip(en ? a[1] : a[0], a[2])}</td></tr>`; }).join('')}</tbody>`; $$('#lng button', main).forEach(b => b.classList.toggle('on', b.dataset.l === l)); };
-  dict('es'); on(main, 'click', '#lng button', (e, b) => dict(b.dataset.l));
+  dict(tr('es', 'en')); on(main, 'click', '#lng button', (e, b) => dict(b.dataset.l));
   on(main, 'click', '[data-dl]', (e, b) => { defs[+b.dataset.dl][4](); toast('Descarga generada'); });
 }
 

@@ -22,13 +22,16 @@ Pruebas: `fuente/origen_test.py` (27 verificaciones).
 
 ## Integración del MCE (guía de integración para desarrollo)
 Código en `fuente/src/domain/mce.js`, `fuente/src/views/mce.js` y `fuente/src/pdf.js` (PDF y QR sin servicios externos).
-- **M1 · Tres semáforos por huerta**: fitosanitario (SENASICA/SICOA), ambiental de exportación y laboral (CLA). Cambio sólo con `evidencia_id` y usuario; el ambiental sólo cambia con el procedimiento. El semáforo forestal (5 colores, reversibilidad) se mantiene separado.
-- **M2 · Tres reglas de corte que no se concilian**: Pro-Forest (2018, incendio 2012, fuera de ANP), exportación (2019, Acuerdo DOF 24-oct-2025) y ruta de restauración (2019–2025). Dictamen de dos condiciones: fuera de terreno forestal al corte o CUSTF vigente.
-- **M3 · CLA** por fases (15-sep-2026 a 15-feb-2028), cadena productor–corte–empaque–exportador con registro patronal y REPSE.
+- **M1 · Expediente de tres semáforos** por huerta: fitosanitario (SENASICA/SICOA), ambiental de exportación y laboral (CLA). Cambio sólo con `evidencia_id` y usuario; el ambiental sólo cambia con el procedimiento. El semáforo forestal (5 colores, reversibilidad) queda separado.
+- **M2 · Dictamen de condición forestal** de dos condiciones: fuera de terreno forestal al corte o CUSTF vigente; reproducible con `reproducir.py`.
+- **M3 · Tres reglas de corte que no se concilian**: Pro-Forest (2018, incendio 2012, fuera de ANP), exportación (2019, Acuerdo DOF 24-oct-2025) y ruta de restauración (2019–2025).
 - **M4 · Procedimientos de autoridad** (PROFEPA, PROAM, FGE) obligatorios para pasar a «En restauración»; constancia de cumplimiento; cohortes de supervivencia.
-- **M5 · Balance de masa** con rendimiento SIAP por altitud, umbral 1.30 editable y SLA de 72 h.
-- **M6 · Geocerca OWP** (catálogo vacío hasta contar con la lista oficial) y **constancia de exportador (CAE)** con pedimento.
-- **M7 · Verificador público** `#/verificar/{folio}` para CAO, CAE y DIC, con QR en constancias y PDF.
-- **M9 · Seguridad de brigadas** sólo para el rol Seguridad (2FA simulado; datos ficticios). **M10 · Paquete UE por lote** (GeoJSON + JSON + PDF + manifiesto SHA-256). **A3** · modos de dictamen y entrega a SEMARNAT.
-- Roles nuevos Seguridad, Finanzas y Federal; requisitos no funcionales con prueba de carga de 59 mil huertas; registro de parámetros y bloqueos externos (SICOA, CUSTF, OWP, VELAGRO, Factor Técnico, VUCEM, cuota) como parámetros vacíos y etiquetados.
-Pruebas: `fuente/mce_test.py` (63 verificaciones), además de `flow2.py` (28) y `smoke.py`.
+- **M5 · Balance de masa** con rendimiento SIAP por banda de altitud, umbral 1.30 editable y SLA de 72 h.
+- **M6 · Geocerca OWP**: catálogo vacío hasta contar con la lista oficial (carga demo etiquetada).
+- **M7 · Folio en el pedimento**: constancia por exportador (CAE) con huertas amparadas, pedimento en el embarque, verificador público `#/verificar/{folio}` con QR y endpoints `/v1/verificar/{folio}` y `/v1/constancias/exportador/{id}`.
+- **M8 · CLA / VELAGRO** por fases (15-sep-2026 a 15-feb-2028), empresas de la cadena con registro patronal y REPSE; sin trabajadores por hectárea.
+- **M9 · Seguridad de brigadas** sólo para el rol Seguridad (2FA simulado; datos ficticios), con registro de ruta en visitas de campo. **M10 · Paquete UE por lote** (GeoJSON + JSON + PDF + manifiesto SHA-256).
+- **M11 · Vista pública bilingüe**: auditoría externa, resultado del dictamen por municipio, diccionario de datos ES/EN y metodología con los dos semáforos.
+- **A1–A3**: detección (Guardián Forestal) separada del dictamen (autoridad estatal); «Finanzas (interno)» restringida al rol Finanzas; dictamen en dos modos con entrega a SEMARNAT.
+- Roles Seguridad, Finanzas y Federal; requisitos no funcionales con prueba de carga de 59 mil huertas; registro de parámetros y bloqueos externos (SICOA, CUSTF, OWP, VELAGRO, Factor Técnico, VUCEM, cuota) como parámetros vacíos y etiquetados.
+Pruebas: `fuente/mce_test.py` (63 verificaciones), además de `flow2.py` (28), `origen_test.py` (27), `arbolin_test.py` (46) y `smoke.py`.
