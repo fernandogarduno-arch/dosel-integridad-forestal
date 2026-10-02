@@ -7,6 +7,8 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--no-sandbox']); pg = b.new_page(viewport={'width': 1440, 'height': 900}, accept_downloads=True)
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.goto('file:///home/claude/platform/dist/index.html'); pg.wait_for_timeout(900)
+    ok('Arranca en Administración · Centro de mando', 'Centro de mando' in pg.inner_text('#main') and 'admin/centro' in pg.url, pg.url)
+    pg.evaluate("window.__go('ciudadano','inicio')"); pg.wait_for_timeout(600)
     go = lambda po, v: (pg.evaluate(f"window.__go('{po}','{v}')"), pg.wait_for_timeout(600))
     toast = lambda: pg.evaluate("[...document.querySelectorAll('#toasts .toast')].map(t=>t.textContent).slice(-1)[0]||''")
     main = lambda: pg.inner_text('#main')

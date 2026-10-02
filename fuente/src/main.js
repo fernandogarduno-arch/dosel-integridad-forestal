@@ -93,5 +93,5 @@ window.__refreshBadges = refreshNavBadges;
 shell();
 montarArbolin();
 const m = location.hash.match(/^#\/(\w+)\/(\w+)/);
-if (m && NAV[m[1]] && VIEWS[m[1]] && VIEWS[m[1]][m[2]]) render(m[1], m[2]); else go('ciudadano', 'inicio');
+if (m && NAV[m[1]] && VIEWS[m[1]] && VIEWS[m[1]][m[2]]) render(m[1], m[2]); else go('admin', 'centro');
 window.addEventListener('hashchange', () => { const m = location.hash.match(/^#\/(\w+)\/(\w+)/); if (m && NAV[m[1]] && (S.portal !== m[1] || S.view !== m[2])) render(m[1], m[2]); });

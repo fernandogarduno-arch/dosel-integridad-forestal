@@ -7,7 +7,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--no-sandbox'])
     ctx = b.new_context(viewport={'width': 1440, 'height': 900}, accept_downloads=True, geolocation={'latitude': 19.4205, 'longitude': -102.0635}, permissions=['geolocation'])
     pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: m.type == 'error' and 'ERR_TUNNEL' not in m.text and 'ERR_' not in m.text and errs.append(m.text))
-    pg.goto('file:///home/claude/platform/dist/index.html'); pg.wait_for_timeout(900)
+    pg.goto('file:///home/claude/platform/dist/index.html#/ciudadano/inicio'); pg.wait_for_timeout(900)
     last = lambda: pg.evaluate("(()=>{const a=[...document.querySelectorAll('#arb-log .arb-m.a .arb-b')];return a.length?a[a.length-1].innerText:''})()")
     alltxt = lambda: pg.inner_text('#arb-log')
     def say(t, w=350): pg.fill('#arb-q', t); pg.press('#arb-q', 'Enter'); pg.wait_for_timeout(w)
