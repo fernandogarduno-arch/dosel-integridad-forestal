@@ -54,6 +54,8 @@ export const SOURCES = [
   { id: 'S40', cat: 6, src: 'Secretaría de finanzas estatal — líneas de captura e ISN', prod: 'Referencias de pago y padrón de contribuyentes', uso: 'Emisión del derecho y tablero de recaudación', acc: 'Convenio', cad: 'Diaria', pri: 'P1', fmt: 'Servicio web', estado: 'convenio', nota: 'Modalidad de cobro por lote verificado sujeta a dictamen jurídico.' },
 ];
 export const REAL_FACTS = [
+  ['Acuerdo de origen certificado (oct-2026)', 'Sólo aguacate con trazabilidad y constancia ambiental entrará a EE. UU. desde la temporada 2026-27', 'Milenio, 2-oct-2026 (APEAM)'],
+  ['Exportación de aguacate a EE. UU. (último año)', '≈ 1.25 millones de t · ≈ 120 mil empleos directos', 'APEAM vía Milenio, 2-oct-2026'],
   ['Superficie de aguacate en Michoacán (Censo Agropecuario)', '164,877 ha · 28,157 unidades de producción', 'Contramuro, ago-2026 (Censo INEGI)'],
   ['Pérdida de bosque reconocida por SECMA 2018-2023', '≈ 30,000 ha', 'Quadratín, feb-2024'],
   ['Reservorios (ollas) identificados', '> 37,000', 'PCM Noticias, dic-2025'],

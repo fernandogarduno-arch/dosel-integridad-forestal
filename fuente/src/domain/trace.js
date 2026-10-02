@@ -32,10 +32,13 @@ S.lotes = []; S.embarques = []; S.consultas = [];
 })();
 export function balance() { const by = {}; S.lotes.forEach(l => { by[l.uid] = (by[l.uid] || 0) + l.t; }); return H.filter(h => exporta(h) && capacidad(h) > 0).map(h => { const ent = +(by[h.uid] || 0).toFixed(1), cap = capacidad(h); const ratio = cap ? ent / cap : 0; return { h, ent, cap, ratio, flag: ratio > PARAMS.balanceFraude ? 'Posible lavado' : ratio > PARAMS.balanceTolerancia ? 'Revisar' : 'Normal' }; }); }
 // recepción en empacadora: consulta de elegibilidad + capacidad remanente
-export function recibir(empId, uid, t) {
+export function recibir(empId, uid, t, check) {
+  const pre = check && check.pre ? check.pre(uid) : null;
+  if (pre && !pre.ok) { const q = { ts: new Date().toISOString().replace(/\.\d+Z/, 'Z'), emp: empId, uid, t, via: 'Portal', elegible: false, origen: !!pre.origen, motivo: pre.motivo }; S.consultas.unshift(q); ledgerAppend(S.ledger, empId, 'RECEPCION_RECHAZADA', uid, sha256Str(JSON.stringify(q))); return { q, lote: null, resp: { uid, encontrado: false, elegible: false, motivo: pre.motivo } }; }
   const e = elegibilidad(uid); const bal = balance().find(b => b.h.uid === uid); const rem = bal ? bal.cap * PARAMS.balanceTolerancia - bal.ent : 0;
   const q = { ts: new Date().toISOString().replace(/\.\d+Z/, 'Z'), emp: empId, uid, t, via: 'Portal', elegible: e.elegible, motivo: e.motivo };
   if (e.elegible && t > rem) { q.elegible = false; q.motivo = `Excede la capacidad productiva remanente (${Math.max(0, rem).toFixed(1)} t de ${bal.cap} t × ${PARAMS.balanceTolerancia})`; }
+  if (q.elegible && check && check.post) { const c = check.post(uid); q.constancia = c.folio; if (!c.ok) { q.elegible = false; q.motivo = c.motivo; } else if (c.nota) q.nota = c.nota; }
   S.consultas.unshift(q); ledgerAppend(S.ledger, empId, q.elegible ? 'RECEPCION_ACEPTADA' : 'RECEPCION_RECHAZADA', uid, sha256Str(JSON.stringify(q)));
   let lote = null; if (q.elegible) { lote = { id: 'LOT-' + String(S.lotes.length + 1).padStart(6, '0'), uid, emp: empId, fecha: todayIso(), t: +(+t).toFixed(2), verif: 'Elegible al recibir', lista: e.version_lista.id }; S.lotes.push(lote); }
   return { q, lote, resp: e };

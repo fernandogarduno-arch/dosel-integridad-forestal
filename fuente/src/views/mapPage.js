@@ -44,7 +44,7 @@ export function mapPage(main, o = {}) {
     const t = e.target; if (t.dataset.l) map.show(t.dataset.l, t.checked); if (t.dataset.c) { const s = new Set(map.flt.cls); t.checked ? s.add(t.dataset.c) : s.delete(t.dataset.c); map.setFilters({ cls: s }); }
     if (t.id === 'fm') { map.setFilters({ mun: t.value }); if (t.value) { const f = G.municipios.features.find(f => f.properties.id === t.value); const xs = [], ys = []; (function w(c) { if (typeof c[0] === 'number') { xs.push(c[0]); ys.push(c[1]); } else c.forEach(w); })(f.geometry.coordinates); map.fitBounds([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], 60); } else map.home(); }
     if (t.id === 'gfc') { map.choro = t.value ? 'gf:' + t.value : 'none'; $$('#ch button', lg).forEach(x => x.classList.toggle('on', x.dataset.m === 'none')); map.redraw(); if (t.value) map.home(); }
-    if (t.id === 'fc') map.setFilters({ cul: t.value }); if (t.id === 'ff') map.setFilters({ from: t.value ? new Date(new Date('2026-09-29').getTime() - t.value * 864e5) : null }); upVis();
+    if (t.id === 'fc') map.setFilters({ cul: t.value }); if (t.id === 'ff') map.setFilters({ from: t.value ? new Date(new Date('2026-10-02').getTime() - t.value * 864e5) : null }); upVis();
   });
   on(lg, 'click', '#cm button', (e, b) => { $$('#cm button', lg).forEach(x => x.classList.toggle('on', x === b)); map.setFilters({ colorMode: b.dataset.m }); });
   on(lg, 'click', '#ch button', (e, b) => { $$('#ch button', lg).forEach(x => x.classList.toggle('on', x === b)); map.choro = b.dataset.m; map.redraw(); });

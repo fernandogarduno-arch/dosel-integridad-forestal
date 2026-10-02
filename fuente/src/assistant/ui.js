@@ -92,7 +92,7 @@ export async function enviar(text, shown) {
   const tp = st.expect ? null : tipoParticipacion(t);
   if (tp && !esPregunta(text)) { iniciarFlujo(tp === '?' ? {} : { tipo: tp }, text); return; }
   if (tp && proveedor().kind === 'local') return local(responderLocal(text, {}), text);
-  if (/\b(DEN|CIU)-2026-[A-Z0-9]{5}\b|\bHUE-?16\d{3}-?\d{5}\b|\bPF-[A-Z]{3}-\d{5}\b/i.test(text) || st.expect) { const r = responderLocal(text, { expect: st.expect }); st.expect = null; return local(r, text); }
+  if (/\bCAO-2627-[A-F0-9]{6}\b|\b(DEN|CIU)-2026-[A-Z0-9]{5}\b|\bHUE-?16\d{3}-?\d{5}\b|\bPF-[A-Z]{3}-\d{5}\b/i.test(text) || st.expect) { const r = responderLocal(text, { expect: st.expect }); st.expect = null; return local(r, text); }
   const p = await detectar(); modo();
   if (p.kind === 'local') return local(responderLocal(text, { expect: st.expect }), text);
   st.busy = true; const ty = escribiendo(); st.ctl = new AbortController(); let shownTxt = '';

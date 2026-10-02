@@ -9,6 +9,7 @@ import * as adm2 from './views/admin2.js';
 import './domain/process.js';
 import './domain/trace.js';
 import './domain/participa.js';
+import './domain/origen.js';
 import * as verif from './views/verif.js';
 import * as rigor from './views/rigor.js';
 import * as cadena from './views/cadena.js';
@@ -17,6 +18,7 @@ import * as gfint from './views/gfint.js';
 import * as lidarviz from './views/lidarviz.js';
 import { empViews, pubViews } from './views/portales.js';
 import * as partV from './views/participa.js';
+import * as origenV from './views/origen.js';
 import { montarArbolin } from './assistant/ui.js';
 import { USERS, ROLES, me } from './domain/core.js';
 
@@ -24,16 +26,16 @@ const NAV = {
   ciudadano: [
     { g: ['Transparencia', 'Transparency'], items: [['inicio', 'Panorama', 'dash', 'Overview'], ['mapa', 'Mapa forestal', 'map', 'Forest map'], ['elegibilidad', 'Consulta de elegibilidad', 'search', 'Eligibility lookup'], ['municipios', 'Municipios', 'layers', 'Municipalities'], ['indicadores', 'Indicadores', 'chart', 'Indicators'], ['restauracion', 'Restauración', 'leaf', 'Restoration']] },
     { g: ['Información', 'Information'], items: [['metodo', 'Metodología de verificación', 'book', 'Verification methodology'], ['datos', 'Datos abiertos', 'db', 'Open data'], ['metodologia', 'Semáforo forestal', 'shield', 'Forest traffic light'], ['cuentas', 'Rendición de cuentas', 'scale', 'Accountability'], ['participa', 'Participa con Arbolín', 'chat', 'Have your say'], ['denuncia', 'Denuncia ciudadana', 'flag', 'Report a case']] }],
-  productor: [{ g: ['Mi cuenta', 'My account'], items: [['panel', 'Mi panel', 'dash'], ['procedimientos', 'Procedimientos y audiencia', 'scale'], ['predios', 'Mis predios', 'map'], ['tramites', 'Trámites', 'file'], ['levantamiento', 'Cargar levantamiento', 'drone'], ['restauracion', 'Proyectos de restauración', 'leaf'], ['avisos', 'Notificaciones', 'alert']] }],
+  productor: [{ g: ['Mi cuenta', 'My account'], items: [['panel', 'Mi panel', 'dash'], ['constancia', 'Constancia ambiental', 'shield'], ['procedimientos', 'Procedimientos y audiencia', 'scale'], ['predios', 'Mis predios', 'map'], ['tramites', 'Trámites', 'file'], ['levantamiento', 'Cargar levantamiento', 'drone'], ['restauracion', 'Proyectos de restauración', 'leaf'], ['avisos', 'Notificaciones', 'alert']] }],
   empacadora: [{ g: ['Empacadora', 'Packer'], items: [['recepcion', 'Recepción de fruta', 'check'], ['lotes', 'Lotes y embarques', 'layers'], ['integracion', 'Integración por API', 'key']] }],
   admin: [
-    { g: ['Operación', 'Operations'], items: [['centro', 'Centro de mando', 'dash'], ['gis', 'Mapa GIS', 'map'], ['huertas', 'Registro de huertas', 'users'], ['triaje', 'Cola de triaje', 'alert'], ['participacion', 'Participación ciudadana', 'chat', 'Citizen input']] },
+    { g: ['Operación', 'Operations'], items: [['centro', 'Centro de mando', 'dash'], ['origen', 'Origen certificado 2026-27', 'shield', 'Certified origin 2026-27'], ['gis', 'Mapa GIS', 'map'], ['huertas', 'Registro de huertas', 'users'], ['triaje', 'Cola de triaje', 'alert'], ['participacion', 'Participación ciudadana', 'chat', 'Citizen input']] },
     { g: ['Debido proceso', 'Due process'], items: [['expedientes', 'Expedientes', 'file'], ['dictamenes', 'Dictámenes', 'shield'], ['segunda', 'Segunda instancia', 'scale']] },
     { g: ['Rigor técnico', 'Technical rigor'], items: [['cortes', 'Cortes y fechado', 'clock'], ['exactitud', 'Exactitud medida', 'chart'], ['semaforo', 'Semáforo forestal', 'shield'], ['lidar', 'Levantamientos LiDAR / dron', 'drone'], ['visor', 'Visor y análisis LiDAR', 'layers'], ['fuentes', 'Fuentes y monitoreo', 'db'], ['guardian', 'Guardián Forestal', 'layers']] },
-    { g: ['Cadena y fiscal', 'Supply chain & revenue'], items: [['balance', 'Trazabilidad y balance', 'layers'], ['compensaciones', 'Compensaciones', 'leaf'], ['recaudacion', 'Recaudación', 'chart'], ['laboral', 'Laboral y agua', 'users']] },
+    { g: ['Cadena y fiscal', 'Supply chain & revenue'], items: [['trazabilidad', 'Trazabilidad de exportación', 'layers', 'Export traceability'], ['balance', 'Trazabilidad y balance', 'layers'], ['compensaciones', 'Compensaciones', 'leaf'], ['recaudacion', 'Recaudación', 'chart'], ['laboral', 'Laboral y agua', 'users']] },
     { g: ['Integridad', 'Integrity'], items: [['bitacora', 'Bitácora de auditoría', 'hash'], ['gobernanza', 'Gobernanza y continuidad', 'key'], ['api', 'API y diccionario', 'db'], ['ingesta', 'Ingesta de datos históricos', 'upload'], ['restauracion', 'Evaluación de restauración', 'leaf'], ['indicadores', 'Indicadores y reportes', 'chart']] }],
 };
-const VIEWS = { ciudadano: { ...ciud.views, ...pubViews, ...partV.pubViews }, productor: prod.views, empacadora: empViews, admin: { ...adm.views, ...adm2.views, ...verif.views, ...rigor.views, ...cadena.views, ...gob.views, ...gfint.views, ...lidarviz.views, ...partV.views } };
+const VIEWS = { ciudadano: { ...ciud.views, ...pubViews, ...partV.pubViews }, productor: prod.views, empacadora: empViews, admin: { ...adm.views, ...adm2.views, ...verif.views, ...rigor.views, ...cadena.views, ...gob.views, ...gfint.views, ...lidarviz.views, ...partV.views, ...origenV.views } };
 const TITLES = { ciudadano: 'Portal Ciudadano', productor: 'Portal del Productor', empacadora: 'Portal de Empacadora', admin: 'Portal de Administración' };
 const EN = () => S.lang === 'en';
 let cleanup = null;

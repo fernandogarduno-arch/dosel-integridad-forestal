@@ -6,10 +6,12 @@
 import { S, ST, munName } from '../state.js';
 import { fmt, TODAY } from '../util.js';
 import { GF, GF_TOT } from '../domain/gf.js';
-import { elegibilidad, hByPid, ESTADOS, PARAMS, todayIso } from '../domain/core.js';
+import { elegibilidad, hByPid, hById, ESTADOS, PARAMS, todayIso } from '../domain/core.js';
 import { nrm, TIPOS, CAT_DEN, CAT_SUG, PRECISION, PRECISA, buscarMunicipios, munById, geocodificarLocalidad, municipioEn, enMichoacan, cruceGeografico, catalogar, integrar, estadoFolio, limpiarPII, validarContacto, enmascarar, MUN_LIST } from '../domain/participa.js';
 import { KB } from './kb.js';
+import { constancia, constanciaPorFolio, preparacion, ACUERDO, COMP } from '../domain/origen.js';
 
+const RX_CAO = /\bCAO-2627-[A-F0-9]{6}\b/i;
 const RX_HUE = /\bHUE-?16\d{3}-?\d{5}\b/i, RX_PF = /\bPF-[A-Z]{3}-\d{5}\b/i, RX_FOLIO = /\b(DEN|CIU)-2026-[A-Z0-9]{5}\b/i;
 const has = (t, arr) => arr.some(k => (' ' + t + ' ').includes(' ' + k));
 const pick = (arr, seed) => arr[Math.abs([...String(seed)].reduce((a, c) => a * 31 + c.charCodeAt(0), 7)) % arr.length];
@@ -57,7 +59,12 @@ export function infoHuerta(id) {
   const uid = /^PF-/i.test(id) ? (hByPid[id.toUpperCase()] || {}).uid : id.toUpperCase().replace(/^HUE-?16(\d{3})-?(\d{5})$/, 'HUE-16$1-$2');
   const r = uid ? elegibilidad(uid) : { encontrado: false };
   if (!r.encontrado) return { md: `No encontré la huerta **${id.toUpperCase()}** en el padrón. Revisa que el identificador esté completo (por ejemplo HUE-16044-00012).`, chips: [goChip('ciudadano', 'elegibilidad')], data: { encontrado: false, id } };
-  return { md: `La huerta **${uid}** (${r.cultivo.toLowerCase()}, ${r.municipio}) está en estado **${r.estado_legal}**.\n${EST_TXT[r.estado_legal] || ''}\n\n${r.elegible ? '**Es elegible** para vender a empacadoras de exportación.' : `**No es elegible** por ahora: ${r.motivo.charAt(0).toLowerCase() + r.motivo.slice(1)}`}\n_Lista de elegibles ${r.version_lista.id}. Huerta de demostración._`, chips: [goChip('ciudadano', 'elegibilidad'), { t: '¿Qué significan los estados?', v: '¿Cómo funciona el procedimiento?' }], data: { uid, estado: r.estado_legal, elegible: r.elegible, cultivo: r.cultivo, municipio: r.municipio, motivo: r.motivo } };
+  return { md: `La huerta **${uid}** (${r.cultivo.toLowerCase()}, ${r.municipio}) está en estado **${r.estado_legal}**.\n${EST_TXT[r.estado_legal] || ''}\n\n${r.elegible ? '**Es elegible** para vender a empacadoras de exportación.' : `**No es elegible** por ahora: ${r.motivo.charAt(0).toLowerCase() + r.motivo.slice(1)}`}\n${(() => { const c = constancia(hById[uid]); return c.estado !== 'No aplica' ? `\nConstancia ambiental de origen 2026-27: **${c.estado}** (${c.folio}).` : ''; })()}\n_Lista de elegibles ${r.version_lista.id}. Huerta de demostración._`, chips: [goChip('ciudadano', 'elegibilidad'), { t: '¿Qué significan los estados?', v: '¿Cómo funciona el procedimiento?' }], data: { uid, estado: r.estado_legal, elegible: r.elegible, cultivo: r.cultivo, municipio: r.municipio, motivo: r.motivo } };
+}
+const C_TXT = { cumple: 'cumple', observacion: 'tiene observación', no_cumple: 'no cumple', en_proceso: 'en proceso', no_aplica: 'no aplica' };
+export function infoConstancia(f) {
+  const c = constanciaPorFolio(f); if (!c) return { md: `No encontré la constancia **${String(f).toUpperCase()}**. Revisa el folio (por ejemplo CAO-2627-3FA2C1).` };
+  return { md: `Constancia **${c.folio}** · huerta **${c.uid}** (${c.municipio}) · temporada ${c.vigencia.id}\nResultado: **${c.estado}**.\n${c.comps.map(x => `• ${x.n}: ${C_TXT[x.estado]}`).join('\n')}${c.plazo ? `\nDebe corregir lo pendiente antes del ${c.plazo}.` : ''}\n_Dato de demostración._`, chips: [goChip('ciudadano', 'elegibilidad')] };
 }
 export function infoFolio(f) {
   const r = estadoFolio(f);
@@ -81,6 +88,7 @@ export function responderLocal(text, ctx = {}) {
   const raw = String(text || ''), t = nrm(raw);
   if (!t) return { md: '¿Me lo escribes de nuevo?' };
   let m;
+  if ((m = raw.match(RX_CAO))) return infoConstancia(m[0]);
   if ((m = raw.match(RX_FOLIO))) return infoFolio(m[0]);
   if ((m = raw.match(RX_HUE) || raw.match(RX_PF))) return infoHuerta(m[0]);
   if (ctx.expect === 'folio') return { md: 'Escríbeme el folio tal como aparece en tu acuse, por ejemplo **DEN-2026-3FA2C** o **CIU-2026-81B0D**.', expect: 'folio' };
@@ -283,6 +291,15 @@ Eres **Arbolín**, el asistente ciudadano de una plataforma estatal de verificac
 # Temas frecuentes (respuestas aprobadas, puedes reformular)
 ${KB.map(k => `- ${k.t}: ${k.a.replace(/\*\*/g, '').replace(/\n/g, ' ')}`).join('\n')}
 
+# Acuerdo de origen certificado (noticia real: ${ACUERDO.fuente})
+${ACUERDO.titulo}. Temporada ${ACUERDO.temporada.id}: inicia ${ACUERDO.temporada.ini}, termina en abril. Estados autorizados para exportar aguacate a EE. UU.: Michoacán y Jalisco.
+${ACUERDO.medidas.map(m => '- ' + m.n + ': ' + m.d).join('\n')}
+- Laboral: ${ACUERDO.laboral}
+- Pendiente: ${ACUERDO.pendiente}
+- Cifras del sector (APEAM): ${ACUERDO.cifras.map(x => x[0] + ' ' + x[1]).join('; ')}.
+- En esta plataforma (DEMOSTRACIÓN) la "Constancia ambiental de origen" (folio CAO-2627-xxxxxx) evalúa por huerta: ${COMP.map(c => c.n).join('; ')}. Indispensables: origen, cero deforestación y trazabilidad; los demás se pueden subsanar en ${PARAMS.constancia.subsanacionDH} días hábiles (constancia "Condicionada"). Resultados posibles: Vigente, Condicionada, En trámite, No procede.
+- Preparación de la franja (demostración): ${(() => { const R = preparacion(); return `${R.n} huertas de aguacate de exportación inscritas; ${R.vig.length} vigentes, ${R.cond.length} condicionadas, ${R.tram.length} en trámite, ${R.np.length} no proceden`; })()}.
+
 # Totales estatales (Guardián Forestal, reales)
 Huertas ${Math.round(GF_TOT.orchHa)} ha; exportación ${Math.round(GF_TOT.expHa)} ha (${GF_TOT.exp} huertas registradas); bosque remanente ${Math.round(GF_TOT.forest)} ha; ollas ${GF_TOT.ollas}; superficie denunciada ${Math.round(GF_TOT.rep)} ha. Municipios: 113.
 
@@ -294,6 +311,7 @@ ${rows}`;
 // Datos recuperados para un turno concreto (folios, huertas, participaciones de la sesión)
 export function datosTurno(text) {
   const out = []; let m;
+  if ((m = text.match(RX_CAO))) { const c = constanciaPorFolio(m[0]); out.push('Constancia consultada: ' + JSON.stringify(c ? { folio: c.folio, uid: c.uid, municipio: c.municipio, resultado: c.estado, componentes: c.comps.map(x => [x.n, x.estado]), plazo: c.plazo } : { encontrada: false })); }
   if ((m = text.match(RX_FOLIO))) out.push('Folio consultado: ' + JSON.stringify(estadoFolio(m[0])));
   if ((m = text.match(RX_HUE) || text.match(RX_PF))) out.push('Huerta consultada: ' + JSON.stringify(infoHuerta(m[0]).data));
   const ms = buscarMunicipios(text); if (ms.length && ms.length <= 3) out.push('Municipios mencionados: ' + ms.map(x => x.name + (x.franja ? ' (franja aguacatera)' : '')).join(', ') + '. Participaciones ciudadanas registradas de ellos: ' + ms.map(x => S.participaciones.filter(p => (p.cruce && p.cruce.mun || p.municipio) === x.id).length).join(', ') + '.');

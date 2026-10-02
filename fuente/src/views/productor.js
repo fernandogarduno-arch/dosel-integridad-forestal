@@ -8,6 +8,7 @@ import { makeSamplePackage, tamper } from '../sample.js';
 import { sha256Str, shortHash, ledgerAppend } from '../integrity.js';
 import { prepPts } from '../map.js';
 import { procedimientos as procView } from './portales.js';
+import { constanciaProductor } from './origen.js';
 import { ensureDemo } from '../domain/process.js';
 
 // productor de demostración: el que tenga más predios
@@ -131,4 +132,5 @@ function avisos(main) {
   main.innerHTML = hdr('Notificaciones', 'Avisos oficiales con acuse. El plazo empieza a correr al día hábil siguiente de la notificación.') + list.map(l => `<div class="card" style="margin-bottom:10px;display:flex;gap:12px"><span class="chip ${l[3]}">${l[3] === 'bad' ? 'Urgente' : l[3] === 'warn' ? 'Atención' : 'Aviso'}</span><div><b>${l[0]}</b> <span class="mono dim tiny">${l[1]}</span><div class="tiny dim" style="margin-top:3px">${l[2]}</div></div></div>`).join('');
 }
 function procedimientos(main) { if (gate(main, () => procedimientos(main))) return; ensureDemo(PRD); procView(main, PRD); }
-export const views = { panel, predios, tramites, levantamiento, restauracion, avisos, procedimientos };
+function constancia(main) { if (gate(main, () => constancia(main))) return; constanciaProductor(main, PRD); }
+export const views = { panel, predios, tramites, levantamiento, restauracion, avisos, procedimientos, constancia };

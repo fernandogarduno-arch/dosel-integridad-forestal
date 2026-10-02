@@ -11,3 +11,11 @@ Modos de respuesta (se detectan solos):
 3. **Modo básico** (sin llave o sin conexión): motor local determinista con los mismos datos.
 
 Pruebas: `fuente/arbolin_test.py` (46 verificaciones de extremo a extremo).
+
+## Origen certificado · temporada 2026-2027
+Respuesta al acuerdo Presidencia–APEAM (Milenio, 2-oct-2026: "Sólo aguacate con origen certificado ingresará a EU"). Código en `fuente/src/domain/origen.js` y `fuente/src/views/origen.js`.
+- **Constancia ambiental de origen** por huerta (folio CAO-2627-xxxxxx): origen autorizado, cero deforestación, agua, recuperación de zonas afectadas, obligaciones laborales y trazabilidad. Indispensables: origen, cero deforestación y trazabilidad; el resto se subsana en 30 días hábiles. Emisión con firma simulada, sólo rol de dictamen, asentada en bitácora. Descargable.
+- **Trazabilidad de exportación**: huerta → corte → recepción → empaque → inspección → cargamento y cruce, con sello de trazabilidad; control de origen que bloquea fruta de estados no autorizados (sólo Michoacán y Jalisco).
+- **Preparación de la temporada** (Administración → Origen certificado): cuenta regresiva al 15-oct, huertas listas por municipio y propuesta de reglas de acreditación (documento, inspección, mecanismo, parámetro), porque las reglas oficiales aún no se publican.
+- Empacadora: la recepción exige constancia; productor: vista "Constancia ambiental"; público: consulta por UID o folio; Arbolín explica el acuerdo y consulta constancias.
+Pruebas: `fuente/origen_test.py` (23 verificaciones).

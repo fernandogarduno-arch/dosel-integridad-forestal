@@ -34,5 +34,5 @@ export function polyAreaHa(ring) { // ring lon/lat
 }
 export function haversine(a, b) { const R = 6371008.8, r = Math.PI / 180; const dLat = (b[1] - a[1]) * r, dLon = (b[0] - a[0]) * r; const s = Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * r) * Math.cos(b[1] * r) * Math.sin(dLon / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(s)); }
 export function pip(pt, ring) { let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if (((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi)) c = !c; } return c; }
-export const TODAY = new Date('2026-09-29T12:00:00');
+export const TODAY = new Date('2026-10-02T12:00:00');
 if (typeof window !== 'undefined') window.__toast = (m, k) => toast(m, k);
